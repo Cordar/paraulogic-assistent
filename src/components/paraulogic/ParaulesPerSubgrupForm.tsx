@@ -8,64 +8,66 @@ interface ParaulesPerSubgrupFormProps {
     onChange: (subgrup: string, count: number) => void;
 }
 
-export default function ParaulesPerSubgrupForm({ 
-    lletres, 
-    paraulesPerSubgrup, 
-    onChange 
+export default function ParaulesPerSubgrupForm({
+    lletres,
+    paraulesPerSubgrup,
+    onChange
 }: ParaulesPerSubgrupFormProps) {
-    
+
     const [nouSubgrup, setNouSubgrup] = useState('');
     const [nouCount, setNouCount] = useState(1);
     const [error, setError] = useState('');
-    const inputRef = useRef<HTMLInputElement>(null);
+    const [bulkInput, setBulkInput] = useState('');
+    const [showBulkInput, setShowBulkInput] = useState(false);
 
-    const handleAfegirSubgrup = () => {
-        setError('');
-        
-        if (!nouSubgrup.trim()) {
-            setError('Introdueix un subgrup');
-            inputRef.current?.focus();
-            return;
+    const validateSubgrup = (subgrup: string): string | null => {
+        if (!subgrup.trim()) {
+            return 'Introdueix un subgrup';
         }
 
-        const subgrup = nouSubgrup.toLowerCase().trim();
-        
+        const subgrupClean = subgrup.toLowerCase().trim();
+
         // Validate that it only contains letters
-        if (!/^[a-z]+$/.test(subgrup)) {
-            setError('El subgrup només pot contenir lletres');
-            inputRef.current?.focus();
-            return;
+        if (!/^[a-z]+$/.test(subgrupClean)) {
+            return 'El subgrup només pot contenir lletres';
         }
 
         // Validate minimum length
-        if (subgrup.length < 2) {
-            setError('El subgrup ha de tenir almenys 2 lletres');
-            inputRef.current?.focus();
-            return;
+        if (subgrupClean.length < 2) {
+            return 'El subgrup ha de tenir almenys 2 lletres';
         }
 
         // Validate that all letters are from the available letters
         const totesLesLletres = lletres.join('');
-        for (const lletra of subgrup) {
+        for (const lletra of subgrupClean) {
             if (!totesLesLletres.includes(lletra)) {
-                setError(`La lletra "${lletra}" no està disponible`);
-                inputRef.current?.focus();
-                return;
+                return `La lletra "${lletra}" no està disponible`;
             }
         }
 
         // Validate no repeated letters in subgroup
-        const lletresUniques = new Set(subgrup);
-        if (lletresUniques.size !== subgrup.length) {
-            setError('No es poden repetir lletres en el subgrup');
-            inputRef.current?.focus();
+        const lletresUniques = new Set(subgrupClean);
+        if (lletresUniques.size !== subgrupClean.length) {
+            return 'No es poden repetir lletres en el subgrup';
+        }
+
+        return null;
+    };
+
+    const handleAfegirSubgrup = () => {
+        setError('');
+
+        const validationError = validateSubgrup(nouSubgrup);
+        if (validationError) {
+            setError(validationError);
             return;
         }
+
+        const subgrup = nouSubgrup.toLowerCase().trim();
 
         // Check if subgroup already exists
         if (paraulesPerSubgrup[subgrup]) {
             setError('Aquest subgrup ja existeix');
-            inputRef.current?.focus();
             return;
         }
 
@@ -73,11 +75,68 @@ export default function ParaulesPerSubgrupForm({
         onChange(subgrup, nouCount);
         setNouSubgrup('');
         setNouCount(1);
+    };
 
-        // Focus back to input for quick consecutive additions
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 0);
+    const parseBulkInput = (input: string): { [key: string]: number } => {
+        const subgrups: { [key: string]: number } = {};
+
+        // Split by spaces and process each part
+        const parts = input.trim().split(/\s+/);
+
+        for (const part of parts) {
+            // Match pattern like "egir-8", "er-2", "egirst-5"
+            const match = part.match(/^([a-z]+)-(\d+)$/i);
+            if (match) {
+                const subgrup = match[1].toLowerCase();
+                const count = parseInt(match[2]);
+
+                // Sort the letters in the subgroup to normalize it (optional)
+                const subgrupSorted = subgrup.split('').sort().join('');
+
+                // Validate the subgroup
+                const validationError = validateSubgrup(subgrupSorted);
+                if (!validationError && count > 0) {
+                    subgrups[subgrupSorted] = count;
+                }
+            }
+        }
+
+        return subgrups;
+    };
+
+    const handleBulkUpdate = () => {
+        setError('');
+
+        if (!bulkInput.trim()) {
+            setError('Introdueix les dades dels subgrups');
+            return;
+        }
+
+        try {
+            const nousSubgrups = parseBulkInput(bulkInput);
+
+            if (Object.keys(nousSubgrups).length === 0) {
+                setError('No s\'han trobat subgrups vàlids. Format esperat: "abc def-5 ghi:3"');
+                return;
+            }
+
+            // Update each subgroup using the onChange callback
+            Object.entries(nousSubgrups).forEach(([subgrup, count]) => {
+                onChange(subgrup, count);
+            });
+
+            setBulkInput('');
+            setShowBulkInput(false);
+
+            // Show success message
+            const countAfegits = Object.keys(nousSubgrups).length;
+            setTimeout(() => {
+                alert(`S'han afegit/actualitzat ${countAfegits} subgrups correctament!`);
+            }, 100);
+
+        } catch (err) {
+            setError('Error processant les dades. Comprova el format.');
+        }
     };
 
     const handleEliminarSubgrup = (subgrup: string) => {
@@ -97,16 +156,69 @@ export default function ParaulesPerSubgrupForm({
 
     return (
         <div>
-            <h5 className="text-md font-medium text-gray-700 mb-3">
-                Paraules per subgrup de lletres
-            </h5>
-            
+            <div className="flex items-center justify-between mb-3">
+                <h5 className="text-md font-medium text-gray-700">
+                    Paraules per subgrup de lletres
+                </h5>
+                <button
+                    type="button"
+                    onClick={() => setShowBulkInput(!showBulkInput)}
+                    className="text-sm px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded-md text-blue-700 font-medium"
+                >
+                    {showBulkInput ? 'Amagar importació' : 'Importació massiva'}
+                </button>
+            </div>
+
             {/* Available letters reminder */}
             <div className="mb-4 p-3 bg-blue-50 rounded-md">
                 <p className="text-sm text-gray-700">
                     <strong>Lletres disponibles:</strong> {lletres.sort().join(', ').toUpperCase()}
                 </p>
             </div>
+
+            {/* Bulk input form */}
+            {showBulkInput && (
+                <div className="mb-4 p-4 bg-blue-50 rounded-md border">
+                    <h6 className="text-sm font-medium text-gray-700 mb-2">
+                        Importació massiva de subgrups
+                    </h6>
+                    <p className="text-xs text-gray-600 mb-3">
+                        Enganxa les dades copiades de la web (format: "egir-8 er-2 ert-10 egr-3...")
+                    </p>
+                    <textarea
+                        value={bulkInput}
+                        onChange={(e) => setBulkInput(e.target.value)}
+                        placeholder="egir-8 er-2 ert-10 egr-3 ers-4 erst-11 egirst-5 eirst-10 eirt-7 egrt-1 gir-1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm h-20 resize-none"
+                    />
+                    <div className="flex justify-end space-x-2 mt-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setBulkInput('');
+                                setShowBulkInput(false);
+                                setError('');
+                            }}
+                            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md text-sm"
+                        >
+                            Cancel·lar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleBulkUpdate}
+                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm font-medium"
+                        >
+                            Importar Subgrups
+                        </button>
+                    </div>
+
+                    {error && showBulkInput && (
+                        <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md mt-3">
+                            {error}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Add new subgroup form */}
             <div className="mb-6 p-4 bg-green-50 rounded-md">
@@ -117,7 +229,7 @@ export default function ParaulesPerSubgrupForm({
                             type="text"
                             value={nouSubgrup}
                             onChange={(e) => setNouSubgrup(e.target.value)}
-                            onKeyPress={handleKeyPress}
+                            onKeyDown={handleKeyPress}
                             placeholder="ex: abc, def, etc."
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                         />
@@ -139,7 +251,7 @@ export default function ParaulesPerSubgrupForm({
                         Afegir
                     </button>
                 </div>
-                {error && (
+                {error && !showBulkInput && (
                     <div className="mt-2 text-red-600 text-sm bg-red-50 p-2 rounded-md">
                         {error}
                     </div>
@@ -157,9 +269,6 @@ export default function ParaulesPerSubgrupForm({
                                     <div className="flex items-center space-x-3">
                                         <span className="font-mono text-lg font-medium">
                                             {subgrup.toUpperCase()}
-                                        </span>
-                                        <span className="text-sm text-gray-600">
-                                            ({subgrup.length} lletres)
                                         </span>
                                     </div>
                                     <div className="flex items-center space-x-3">
