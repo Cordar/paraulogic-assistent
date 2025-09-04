@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 
 interface ParaulesPerSubgrupFormProps {
     lletres: string[];
@@ -134,7 +134,7 @@ export default function ParaulesPerSubgrupForm({
                 alert(`S'han afegit/actualitzat ${countAfegits} subgrups correctament!`);
             }, 100);
 
-        } catch (err) {
+        } catch (_) {
             setError('Error processant les dades. Comprova el format.');
         }
     };
@@ -183,7 +183,7 @@ export default function ParaulesPerSubgrupForm({
                         Importació massiva de subgrups
                     </h6>
                     <p className="text-xs text-gray-600 mb-3">
-                        Enganxa les dades copiades de la web (format: "egir-8 er-2 ert-10 egr-3...")
+                        Enganxa les dades copiades de la web (format: &quot;egir-8 er-2 ert-10 egr-3...&quot;)
                     </p>
                     <textarea
                         value={bulkInput}

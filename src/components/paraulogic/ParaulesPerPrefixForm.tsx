@@ -71,7 +71,7 @@ export default function ParaulesPerPrefixForm({
                 alert(`S'han actualitzat ${countAfegits} prefixos correctament!`);
             }, 100);
             
-        } catch (err) {
+        } catch (_) {
             setError('Error processant les dades. Comprova el format.');
         }
     };
@@ -98,7 +98,7 @@ export default function ParaulesPerPrefixForm({
                         Importació massiva de prefixos
                     </h6>
                     <p className="text-xs text-gray-600 mb-3">
-                        Enganxa les dades copiades de la web (format: "eg-1 er-5 es-11 et-2...")
+                        Enganxa les dades copiades de la web (format: &quot;eg-1 er-5 es-11 et-2...&quot;)
                     </p>
                     <textarea
                         value={bulkInput}

@@ -270,12 +270,12 @@ export default function ParaulesPerLletraForm({
 
             {visibleLengths.length === 0 && (
                 <div className="text-center text-gray-500 p-8 border-2 border-dashed border-gray-300 rounded-md mt-4">
-                    No hi ha columnes visibles. Fes clic a "Gestionar columnes" per afegir-ne.
+                    No hi ha columnes visibles. Fes clic a &quot;Gestionar columnes&quot; per afegir-ne.
                 </div>
             )}
 
             <div className="mt-4 text-xs text-gray-500 space-y-1">
-                <p>• Cada cel·la representa el nombre de paraules d'una longitud específica que comencen per aquesta lletra</p>
+                <p>• Cada cel·la representa el nombre de paraules d&apos;una longitud específica que comencen per aquesta lletra</p>
                 <p>• Els totals per lletra es calculen automàticament</p>
                 <p>• Per defecte només es mostren les longituds amb dades</p>
             </div>
