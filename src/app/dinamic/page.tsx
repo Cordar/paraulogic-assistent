@@ -7,14 +7,12 @@ import Button from '@/components/paraulogic/Button';
 import LletraPrincipalForm from '@/components/paraulogic/LletraPrincipalForm';
 import PistesForm from '@/components/paraulogic/PistesForm';
 import PistesSummary from '@/components/paraulogic/PistesSummary';
-import ParaulesTrobadesForm from '@/components/paraulogic/ParaulesTrobadesForm';
 
-function MostrarDadesGuardades({dades, onReset, onAddClues, onViewSummary, onManageWords}: {
+function MostrarDadesGuardades({dades, onReset, onAddClues, onViewSummary}: {
     dades: GameData, 
     onReset: () => void, 
     onAddClues: () => void,
-    onViewSummary: () => void,
-    onManageWords: () => void
+    onViewSummary: () => void
 }) {
     return (
         <div className="max-w-md mx-auto bg-green-50 p-6 rounded-lg">
@@ -40,12 +38,9 @@ function MostrarDadesGuardades({dades, onReset, onAddClues, onViewSummary, onMan
                     <Button fun={onAddClues} variant="secondary">
                         {dades.pistes ? 'Editar Pistes' : 'Afegir Pistes'}
                     </Button>
-                    <Button fun={onManageWords} variant="secondary">
-                      Paraules ({dades.paraulesTrobades?.length || 0})
-                    </Button>
                     {dades.pistes && (
                         <Button fun={onViewSummary} variant="primary">
-                            Veure Anàlisi
+                            Veure Resum
                         </Button>
                     )}
                 </div>
@@ -109,20 +104,6 @@ function AssistentDinamic() {
         setPas(2);
     }
 
-    function manageWords() {
-      setPas(5);
-    }
-
-    function onWordsComplete() {
-      const dadesGuardades = obtenirDadesGuardades();
-      setDades(dadesGuardades);
-      setPas(2);
-    }
-
-    function cancelWords() {
-      setPas(2);
-    }
-
     if (pas === 0) {
         return (
             <div className="text-center">
@@ -143,7 +124,6 @@ function AssistentDinamic() {
                 onReset={resetDades} 
                 onAddClues={addClues}
                 onViewSummary={viewSummary}
-                onManageWords={manageWords}
             />
         );
     }
@@ -169,12 +149,6 @@ function AssistentDinamic() {
                 <PistesSummary dades={dades} />
             </div>
         );
-    }
-
-    if (pas == 5 && dades) {
-      return (
-        <ParaulesTrobadesForm dades={dades} onComplete={onWordsComplete} onCancel={cancelWords} />
-      )
     }
     
     return <span>Error: Estat no vàlid</span>
