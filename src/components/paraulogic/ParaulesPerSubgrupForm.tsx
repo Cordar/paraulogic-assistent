@@ -92,7 +92,7 @@ export default function ParaulesPerSubgrupForm({
     };
 
     const subgrupsExistents = Object.entries(paraulesPerSubgrup)
-        .filter(([__, count]) => count > 0)
+        .filter(([_, count]) => count > 0)
         .sort(([a], [b]) => a.localeCompare(b));
 
     return (
