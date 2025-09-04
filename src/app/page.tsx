@@ -41,16 +41,6 @@ function MostrarDadesGuardades({ dades, onReset, onAddClues, onViewSummary, onMa
           <Button fun={onAddClues} variant="secondary">
             {dades.pistes ? "Editar Pistes" : "Afegir Pistes"}
           </Button>
-          <Button fun={onManageWords} variant="secondary">
-            Paraules ({dades.paraulesTrobades?.length || 0})
-          </Button>
-          {dades.pistes && (
-            <Button fun={onViewSummary} variant="primary">
-              Veure Anàlisi
-            </Button>
-          )}
-        </div>
-        <div className="text-center">
           <Button fun={onReset} variant="danger">
             Nova Configuració
           </Button>
@@ -167,6 +157,13 @@ function AssistentDinamic() {
           onCancel={cancelReset}
           variant="danger"
         />
+        <ParaulesTrobadesForm
+          dades={dades}
+          onComplete={onWordsComplete}
+          onCancel={cancelWords}
+        />
+        <div className="mt-4 text-center"></div>
+        <PistesSummary dades={dades} />
       </>
       
     );

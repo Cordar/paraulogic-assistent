@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { GameData } from '@/types/paraulogic';
 import { guardarDades, obtenirDadesGuardades } from '@/utils/localStorage';
+import Button from "./Button";
 
 interface ParaulesTrobadesFormProps {
     dades: GameData;
@@ -15,6 +16,7 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
     const [error, setError] = useState('');
     const [paraulesTrobades, setParaulesTrobades] = useState<string[]>(dades.paraulesTrobades || []);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [showDetails, setShowDetails] = useState(false);
 
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
 
@@ -55,7 +57,7 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
 
     const handleAfegirParaula = () => {
         setError('');
-        
+
         const errorValidacio = validarParaula(novaParaula);
         if (errorValidacio) {
             setError(errorValidacio);
@@ -68,34 +70,31 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
         setParaulesTrobades(novesParaules);
         setNovaParaula('');
 
-        // Auto-save
-        setTimeout(() => {
-            const dadesActuals = obtenirDadesGuardades();
-            if (dadesActuals) {
-                const dadesActualitzades = {
-                    ...dadesActuals,
-                    paraulesTrobades: novesParaules
-                };
-                guardarDades(dadesActualitzades);
-            }
-            inputRef.current?.focus();
-        }, 0);
+        const dadesActuals = obtenirDadesGuardades();
+        if (dadesActuals) {
+            const dadesActualitzades = {
+                ...dadesActuals,
+                paraulesTrobades: novesParaules
+            };
+            guardarDades(dadesActualitzades);
+        }
+        onComplete();
     };
 
     const handleEliminarParaula = (paraula: string) => {
         const novesParaules = paraulesTrobades.filter(p => p !== paraula);
         setParaulesTrobades(novesParaules);
 
-        setTimeout(() => {
-            const dadesActuals = obtenirDadesGuardades();
-            if (dadesActuals) {
-                const dadesActualitzades = {
-                    ...dadesActuals,
-                    paraulesTrobades: novesParaules
-                };
-                guardarDades(dadesActualitzades);
-            }
-        }, 0);
+        const dadesActuals = obtenirDadesGuardades();
+        if (dadesActuals) {
+            const dadesActualitzades = {
+                ...dadesActuals,
+                paraulesTrobades: novesParaules
+            };
+            guardarDades(dadesActualitzades);
+        }
+
+        onComplete();
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -103,18 +102,6 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
             e.preventDefault();
             handleAfegirParaula();
         }
-    };
-
-    const handleComplete = () => {
-        const dadesActuals = obtenirDadesGuardades();
-        if (dadesActuals) {
-            const dadesActualitzades = {
-                ...dadesActuals,
-                paraulesTrobades: paraulesTrobades
-            };
-            guardarDades(dadesActualitzades);
-        }
-        onComplete();
     };
 
     // Group words by first letter
@@ -152,20 +139,19 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
                             type="text"
                             value={novaParaula}
                             onChange={(e) => setNovaParaula(e.target.value)}
-                            onKeyPress={handleKeyPress}
+                            onKeyDown={handleKeyPress}
                             placeholder="Escriu una paraula..."
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                             autoFocus
                         />
                     </div>
-                    <button
-                        type="button"
-                        onClick={handleAfegirParaula}
-                        className="px-4 py-2 bg-green-200 hover:bg-green-300 rounded-md font-medium"
+                    <Button
+                        fun={handleAfegirParaula}
                     >
                         Afegir
-                    </button>
+                    </Button>
                 </div>
+                <Button fun={() => setShowDetails(!showDetails)} className="mt-2">Mostrar / Ocultar detalls</Button>
                 {error && (
                     <div className="mt-2 text-red-600 text-sm bg-red-50 p-2 rounded-md">
                         {error}
@@ -173,78 +159,65 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
                 )}
             </div>
 
-            {/* Words count summary */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-md">
-                <div className="flex justify-between items-center">
-                    <span className="font-medium">Total paraules trobades: {paraulesTrobades.length}</span>
-                    {dades.pistes && (
-                        <span className="text-sm text-gray-600">
-                            de {dades.pistes.totalParaules} ({Math.round((paraulesTrobades.length / dades.pistes.totalParaules) * 100)}%)
-                        </span>
+            {/* Show/hide details */}
+            {showDetails && (
+                <div>
+                    {/* Words count summary */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded-md">
+                        <div className="flex justify-between items-center">
+                            <span className="font-medium">Total paraules trobades: {paraulesTrobades.length}</span>
+                            {dades.pistes && (
+                                <span className="text-sm text-gray-600">
+                                    de {dades.pistes.totalParaules} ({Math.round((paraulesTrobades.length / dades.pistes.totalParaules) * 100)}%)
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Found words by letter */}
+                    {paraulesTrobades.length > 0 && (
+                        <div className="mb-6">
+                            <h6 className="text-sm font-medium text-gray-700 mb-3">Paraules per lletra inicial:</h6>
+                            <div className="max-h-96 overflow-y-auto border rounded-md p-4 bg-gray-50">
+                                {totesLesLletres.sort().map(lletra => {
+                                    const paraules = paraulesPerLletra[lletra] || [];
+                                    if (paraules.length === 0) return null;
+
+                                    return (
+                                        <div key={lletra} className="mb-4">
+                                            <div className="font-bold text-lg mb-2 flex items-center">
+                                                <span className="bg-white px-3 py-1 rounded mr-3">{lletra.toUpperCase()}</span>
+                                                <span className="text-sm text-gray-600">({paraules.length} paraules)</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                {paraules.map(paraula => (
+                                                    <div key={paraula} className="bg-white p-2 rounded flex items-center justify-between">
+                                                        <span className="font-mono text-sm">{paraula}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleEliminarParaula(paraula)}
+                                                            className="text-red-500 hover:text-red-700 ml-2 text-xs"
+                                                            title="Eliminar"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {paraulesTrobades.length === 0 && (
+                        <div className="text-center text-gray-500 p-8 border-2 border-dashed border-gray-300 rounded-md mb-6">
+                            No hi ha paraules trobades encara
+                        </div>
                     )}
                 </div>
-            </div>
-
-            {/* Found words by letter */}
-            {paraulesTrobades.length > 0 && (
-                <div className="mb-6">
-                    <h6 className="text-sm font-medium text-gray-700 mb-3">Paraules per lletra inicial:</h6>
-                    <div className="max-h-96 overflow-y-auto border rounded-md p-4 bg-gray-50">
-                        {totesLesLletres.sort().map(lletra => {
-                            const paraules = paraulesPerLletra[lletra] || [];
-                            if (paraules.length === 0) return null;
-
-                            return (
-                                <div key={lletra} className="mb-4">
-                                    <div className="font-bold text-lg mb-2 flex items-center">
-                                        <span className="bg-white px-3 py-1 rounded mr-3">{lletra.toUpperCase()}</span>
-                                        <span className="text-sm text-gray-600">({paraules.length} paraules)</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                                        {paraules.map(paraula => (
-                                            <div key={paraula} className="bg-white p-2 rounded flex items-center justify-between">
-                                                <span className="font-mono text-sm">{paraula}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleEliminarParaula(paraula)}
-                                                    className="text-red-500 hover:text-red-700 ml-2 text-xs"
-                                                    title="Eliminar"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
             )}
-
-            {paraulesTrobades.length === 0 && (
-                <div className="text-center text-gray-500 p-8 border-2 border-dashed border-gray-300 rounded-md mb-6">
-                    No hi ha paraules trobades encara
-                </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex justify-center space-x-4">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-md font-medium"
-                >
-                    Cancel·lar
-                </button>
-                <button
-                    type="button"
-                    onClick={handleComplete}
-                    className="px-6 py-2 bg-blue-200 hover:bg-blue-300 rounded-md font-medium"
-                >
-                    Guardar i Continuar
-                </button>
-            </div>
         </div>
     );
 }

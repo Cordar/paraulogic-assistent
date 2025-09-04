@@ -1,12 +1,14 @@
 'use client'
 
 import { GameData } from '@/types/paraulogic';
+import { useMemo, useState } from "react";
 
 interface PistesSummaryProps {
     dades: GameData;
 }
 
 export default function PistesSummary({ dades }: PistesSummaryProps) {
+
     if (!dades.pistes|| !dades.paraulesTrobades) {
         return (
             <div className="text-center text-gray-500 p-4">
@@ -19,48 +21,53 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
 
     // Analyze found words
-    const analisiParaules = {
-        perLletra: {} as { [key: string]: { count: number, lengths: { [length: number]: number } } },
-        perSubgrup: {} as { [key: string]: number },
-        perPrefix: {} as { [key: string]: number }
-    };
+    const analisiParaules = useMemo(() => {
 
-    // Analyze words by letter and length
-    paraulesTrobades.forEach(paraula => {
-        const primeraLletra = paraula[0];
-        const longitud = paraula.length;
+        const analysis = {
+            perLletra: {} as { [key: string]: { count: number, lengths: { [length: number]: number } } },
+            perSubgrup: {} as { [key: string]: number },
+            perPrefix: {} as { [key: string]: number }
+        };
 
-        if (!analisiParaules.perLletra[primeraLletra]) {
-            analisiParaules.perLletra[primeraLletra] = { count: 0, lengths: {} };
-        }
-        
-        analisiParaules.perLletra[primeraLletra].count++;
-        analisiParaules.perLletra[primeraLletra].lengths[longitud] = 
-            (analisiParaules.perLletra[primeraLletra].lengths[longitud] || 0) + 1;
-    });
+        // Analyze words by letter and length
+        paraulesTrobades.forEach(paraula => {
+            const primeraLletra = paraula[0];
+            const longitud = paraula.length;
 
-    // Analyze words by subgroups
-    Object.keys(pistes.paraulesPerSubgrup).forEach(subgrup => {
-        if (pistes.paraulesPerSubgrup[subgrup] > 0) {
-            const lletresSubgrup = new Set(subgrup.split(''));
-            const paraulesAmbSubgrup = paraulesTrobades.filter(paraula => {
-                const lletresParaula = new Set(paraula.split(''));
-                
-                // Check if both sets are identical (same size and same elements)
-                return lletresParaula.size === lletresSubgrup.size && 
-                    [...lletresParaula].every(lletra => lletresSubgrup.has(lletra));
-            });
-            analisiParaules.perSubgrup[subgrup] = paraulesAmbSubgrup.length;
-        }
-    });
+            if (!analysis.perLletra[primeraLletra]) {
+                analysis.perLletra[primeraLletra] = { count: 0, lengths: {} };
+            }
+            
+            analysis.perLletra[primeraLletra].count++;
+            analysis.perLletra[primeraLletra].lengths[longitud] = 
+                (analysis.perLletra[primeraLletra].lengths[longitud] || 0) + 1;
+        });
 
-    // Analyze words by prefix
-    Object.keys(pistes.paraulesPerPrefix).forEach(prefix => {
-        if (pistes.paraulesPerPrefix[prefix] > 0) {
-            const paraulesAmbPrefix = paraulesTrobades.filter(paraula => paraula.startsWith(prefix));
-            analisiParaules.perPrefix[prefix] = paraulesAmbPrefix.length;
-        }
-    });
+        // Analyze words by prefix
+        Object.keys(pistes.paraulesPerPrefix).forEach(prefix => {
+            if (pistes.paraulesPerPrefix[prefix] > 0) {
+                const paraulesAmbPrefix = paraulesTrobades.filter(paraula => paraula.startsWith(prefix));
+                analysis.perPrefix[prefix] = paraulesAmbPrefix.length;
+            }
+        });
+
+        // Analyze words by subgroups
+        Object.keys(pistes.paraulesPerSubgrup).forEach(subgrup => {
+            if (pistes.paraulesPerSubgrup[subgrup] > 0) {
+                const lletresSubgrup = new Set(subgrup.split(''));
+                const paraulesAmbSubgrup = paraulesTrobades.filter(paraula => {
+                    const lletresParaula = new Set(paraula.split(''));
+                    
+                    // Check if both sets are identical (same size and same elements) and if exists prefix available
+                    return lletresParaula.size === lletresSubgrup.size &&
+                        [...lletresParaula].every(lletra => lletresSubgrup.has(lletra));
+                });
+                analysis.perSubgrup[subgrup] = paraulesAmbSubgrup.length;
+            }
+        });
+
+        return analysis;
+    }, [paraulesTrobades, pistes]);
 
     const getProgressColor = (found: number, total: number) => {
         if (found === 0) return 'bg-red-100 text-red-800';
@@ -109,132 +116,6 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                 {getProgressBar(paraulesTrobades.length, pistes.totalParaules)}
             </div>
 
-            {/* Detailed table by letter and length */}
-            {expectedLengths.length > 0 && (
-                <div className="mb-8">
-                    <h5 className="font-medium mb-4 text-lg">Detall per lletra i longitud:</h5>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse border border-gray-300 bg-white text-sm">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="border border-gray-300 px-3 py-2 text-left font-semibold sticky left-0 bg-gray-100 z-10">
-                                        Lletra
-                                    </th>
-                                    {expectedLengths.map(length => (
-                                        <th key={length} className="border border-gray-300 px-2 py-2 text-center font-semibold min-w-[80px]">
-                                            {length}
-                                        </th>
-                                    ))}
-                                    <th className="border border-gray-300 px-3 py-2 text-center font-semibold bg-blue-50">
-                                        Total
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {totesLesLletres.sort().map(lletra => {
-                                    const pista = pistes.paraulesPerLletra[lletra];
-                                    const trobades = analisiParaules.perLletra[lletra];
-                                    const totalTrobades = trobades?.count || 0;
-                                    const totalEsperades = pista?.count || 0;
-
-                                    return (
-                                        <tr key={lletra} className="hover:bg-gray-50">
-                                            <td className="border border-gray-300 px-3 py-2 font-bold text-lg bg-gray-50 sticky left-0 z-10">
-                                                {lletra.toUpperCase()}
-                                            </td>
-                                            {expectedLengths.map(length => {
-                                                const expectedCount = pista?.lengthCounts?.[length] || 0;
-                                                const foundCount = trobades?.lengths[length] || 0;
-                                                const missing = Math.max(0, expectedCount - foundCount);
-                                                
-                                                if (expectedCount === 0) {
-                                                    return (
-                                                        <td key={length} className="border border-gray-300 px-2 py-2 text-center text-gray-400">
-                                                            -
-                                                        </td>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <td key={length} className={`border border-gray-300 px-2 py-2 text-center ${getProgressColor(foundCount, expectedCount)}`}>
-                                                        <div className="font-semibold">
-                                                            {foundCount}/{expectedCount}
-                                                        </div>
-                                                        {missing > 0 && (
-                                                            <div className="text-xs text-red-600">
-                                                                -{missing}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                );
-                                            })}
-                                            <td className={`border border-gray-300 px-3 py-2 text-center font-bold sticky right-0 z-10 ${getProgressColor(totalTrobades, totalEsperades)}`}>
-                                                {totalTrobades}/{totalEsperades}
-                                                {totalEsperades > totalTrobades && (
-                                                    <div className="text-xs text-red-600">
-                                                        -{totalEsperades - totalTrobades}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                                
-                                {/* Totals row */}
-                                <tr className="bg-yellow-50 font-semibold">
-                                    <td className="border border-gray-300 px-3 py-2 font-bold sticky left-0 bg-yellow-50 z-10">
-                                        TOTAL
-                                    </td>
-                                    {expectedLengths.map(length => {
-                                        const totalExpected = totesLesLletres.reduce((sum, lletra) => {
-                                            const pista = pistes.paraulesPerLletra[lletra];
-                                            return sum + (pista?.lengthCounts?.[length] || 0);
-                                        }, 0);
-                                        const totalFound = totesLesLletres.reduce((sum, lletra) => {
-                                            const trobades = analisiParaules.perLletra[lletra];
-                                            return sum + (trobades?.lengths[length] || 0);
-                                        }, 0);
-                                        const totalMissing = Math.max(0, totalExpected - totalFound);
-
-                                        if (totalExpected === 0) {
-                                            return (
-                                                <td key={length} className="border border-gray-300 px-2 py-2 text-center text-gray-400">
-                                                    -
-                                                </td>
-                                            );
-                                        }
-
-                                        return (
-                                            <td key={length} className="border border-gray-300 px-2 py-2 text-center">
-                                                <div className="font-semibold">
-                                                    {totalFound}/{totalExpected}
-                                                </div>
-                                                {totalMissing > 0 && (
-                                                    <div className="text-xs text-red-600">
-                                                        -{totalMissing}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        );
-                                    })}
-                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold bg-yellow-100 sticky right-0 z-10">
-                                        {paraulesTrobades.length}/{pistes.totalParaules}
-                                        {pistes.totalParaules > paraulesTrobades.length && (
-                                            <div className="text-xs text-red-600">
-                                                -{pistes.totalParaules - paraulesTrobades.length}
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                        • Verd: complet | Groc: parcial | Vermell: sense trobar | Els números negatius mostren les paraules que falten
-                    </p>
-                </div>
-            )}
-
             {/* Recommendations */}
             <div className="bg-blue-50 p-6 rounded-lg mb-8">
                 <h5 className="font-medium mb-3 text-lg">Recomanacions estratègiques:</h5>
@@ -277,13 +158,14 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                             })
                             .sort((a, b) => a.length - b.length); // Shorter prefixes first
                         
-                        // Get available subgroups that include this letter
+                        // Get available subgroups that include available prefixes
                         availableSubgroups[lletra] = Object.keys(pistes.paraulesPerSubgrup)
                             .filter(subgrup => {
                                 const includesLetter = subgrup.includes(lletra);
+                                const includesPrefixes = availablePrefixes[lletra].some(prefix => subgrup.includes(prefix.split('')[1]));
                                 const expectedCount = pistes.paraulesPerSubgrup[subgrup];
                                 const foundCount = analisiParaules.perSubgrup[subgrup] || 0;
-                                return includesLetter && expectedCount > foundCount;
+                                return includesLetter && includesPrefixes && expectedCount > foundCount;
                             })
                             .sort((a, b) => a.length - b.length); // Shorter subgroups first
                     });
@@ -412,50 +294,131 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                 })()}
             </div>
 
-            {/* Progress by letter */}
-            <div className="mb-8">
-                <h5 className="font-medium mb-4 text-lg">Progrés per lletra inicial:</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {totesLesLletres.sort().map(lletra => {
-                        const pista = pistes.paraulesPerLletra[lletra];
-                        const trobades = analisiParaules.perLletra[lletra];
-                        const countTrobades = trobades?.count || 0;
-                        const totalEsperades = pista?.count || 0;
+            {/* Detailed table by letter and length */}
+            {expectedLengths.length > 0 && (
+                <div className="mb-8">
+                    <h5 className="font-medium mb-4 text-lg">Detall per lletra i longitud:</h5>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse border border-gray-300 bg-white text-sm">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="border border-gray-300 px-3 py-2 text-left font-semibold sticky left-0 bg-gray-100 z-10">
+                                        Lletra
+                                    </th>
+                                    {expectedLengths.map(length => (
+                                        <th key={length} className="border border-gray-300 px-2 py-2 text-center font-semibold min-w-[80px]">
+                                            {length}
+                                        </th>
+                                    ))}
+                                    <th className="border border-gray-300 px-3 py-2 text-center font-semibold bg-blue-50">
+                                        Total
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {totesLesLletres.sort().map(lletra => {
+                                    const pista = pistes.paraulesPerLletra[lletra];
+                                    const trobades = analisiParaules.perLletra[lletra];
+                                    const totalTrobades = trobades?.count || 0;
+                                    const totalEsperades = pista?.count || 0;
 
-                        return (
-                            <div key={lletra} className={`p-4 rounded-lg border-2 ${getProgressColor(countTrobades, totalEsperades)}`}>
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="font-bold text-2xl">{lletra.toUpperCase()}</div>
-                                    <div className="text-lg font-semibold">
-                                        {countTrobades}/{totalEsperades}
-                                    </div>
-                                </div>
-                                {getProgressBar(countTrobades, totalEsperades)}
-                                
-                                {/* Length breakdown */}
-                                {pista?.lengthCounts && Object.keys(pista.lengthCounts).length > 0 && (
-                                    <div className="mt-3 text-sm">
-                                        <div className="font-medium mb-1">Per longitud:</div>
-                                        {Object.entries(pista.lengthCounts)
-                                            .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                                            .map(([length, expectedCount]) => {
-                                                const foundCount = trobades?.lengths[parseInt(length)] || 0;
+                                    return (
+                                        <tr key={lletra} className="hover:bg-gray-50">
+                                            <td className="border border-gray-300 px-3 py-2 font-bold text-lg bg-gray-50 sticky left-0 z-10">
+                                                {lletra.toUpperCase()}
+                                            </td>
+                                            {expectedLengths.map(length => {
+                                                const expectedCount = pista?.lengthCounts?.[length] || 0;
+                                                const foundCount = trobades?.lengths[length] || 0;
+                                                const missing = Math.max(0, expectedCount - foundCount);
+                                                
+                                                if (expectedCount === 0) {
+                                                    return (
+                                                        <td key={length} className="border border-gray-300 px-2 py-2 text-center text-gray-400">
+                                                            -
+                                                        </td>
+                                                    );
+                                                }
+
                                                 return (
-                                                    <div key={length} className="flex justify-between items-center">
-                                                        <span>{length} lletres:</span>
-                                                        <span className={`px-2 py-1 rounded text-xs ${getProgressColor(foundCount, expectedCount)}`}>
+                                                    <td key={length} className={`border border-gray-300 px-2 py-2 text-center ${getProgressColor(foundCount, expectedCount)}`}>
+                                                        <div className="font-semibold">
                                                             {foundCount}/{expectedCount}
-                                                        </span>
-                                                    </div>
+                                                        </div>
+                                                        {missing > 0 && (
+                                                            <div className="text-xs text-red-600">
+                                                                -{missing}
+                                                            </div>
+                                                        )}
+                                                    </td>
                                                 );
                                             })}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                            <td className={`border border-gray-300 px-3 py-2 text-center font-bold sticky right-0 z-10 ${getProgressColor(totalTrobades, totalEsperades)}`}>
+                                                {totalTrobades}/{totalEsperades}
+                                                {totalEsperades > totalTrobades && (
+                                                    <div className="text-xs text-red-600">
+                                                        -{totalEsperades - totalTrobades}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                
+                                {/* Totals row */}
+                                <tr className="bg-yellow-50 font-semibold">
+                                    <td className="border border-gray-300 px-3 py-2 font-bold sticky left-0 bg-yellow-50 z-10">
+                                        TOTAL
+                                    </td>
+                                    {expectedLengths.map(length => {
+                                        const totalExpected = totesLesLletres.reduce((sum, lletra) => {
+                                            const pista = pistes.paraulesPerLletra[lletra];
+                                            return sum + (pista?.lengthCounts?.[length] || 0);
+                                        }, 0);
+                                        const totalFound = totesLesLletres.reduce((sum, lletra) => {
+                                            const trobades = analisiParaules.perLletra[lletra];
+                                            return sum + (trobades?.lengths[length] || 0);
+                                        }, 0);
+                                        const totalMissing = Math.max(0, totalExpected - totalFound);
+
+                                        if (totalExpected === 0) {
+                                            return (
+                                                <td key={length} className="border border-gray-300 px-2 py-2 text-center text-gray-400">
+                                                    -
+                                                </td>
+                                            );
+                                        }
+
+                                        return (
+                                            <td key={length} className="border border-gray-300 px-2 py-2 text-center">
+                                                <div className="font-semibold">
+                                                    {totalFound}/{totalExpected}
+                                                </div>
+                                                {totalMissing > 0 && (
+                                                    <div className="text-xs text-red-600">
+                                                        -{totalMissing}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold bg-yellow-100 sticky right-0 z-10">
+                                        {paraulesTrobades.length}/{pistes.totalParaules}
+                                        {pistes.totalParaules > paraulesTrobades.length && (
+                                            <div className="text-xs text-red-600">
+                                                -{pistes.totalParaules - paraulesTrobades.length}
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                        • Verd: complet | Groc: parcial | Vermell: sense trobar | Els números negatius mostren les paraules que falten
+                    </p>
                 </div>
-            </div>
+            )}
 
             {/* Progress by subgroups */}
             {Object.keys(pistes.paraulesPerSubgrup).some(s => pistes.paraulesPerSubgrup[s] > 0) && (
