@@ -1,7 +1,9 @@
 'use client'
 
 import { GameData } from '@/types/paraulogic';
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import PrefixCombinationsModal from './PrefixCombinationsModal';
+import { usePrefixModal } from '@/hooks/usePrefixModal';
 
 interface PistesSummaryProps {
     dades: GameData;
@@ -19,6 +21,8 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
 
     const { pistes, paraulesTrobades } = dades;
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
+
+    const { modalState, openModal, closeModal } = usePrefixModal();
 
     // Analyze found words
     const analisiParaules = useMemo(() => {
@@ -187,6 +191,8 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                         })
                         .slice(0, 4); // Show top 4 letters
                     
+
+                    
                     return (
                         <div className="space-y-4">
                             {sortedLetters.map(lletra => {
@@ -237,10 +243,24 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                                                                     const foundCount = analisiParaules.perPrefix[prefix] || 0;
                                                                     const missing = expectedCount - foundCount;
                                                                     return (
-                                                                        <span key={prefix} className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-mono">
+                                                                        <button
+                                                                            key={prefix}
+                                                                            onClick={() => {
+                                                                                // Trobar la llargada més prometedora per aquest prefix
+                                                                                const availableLengths = expectedLengths.filter(length => {
+                                                                                    const lengthMissing = missingByLetterAndLength[lletra]?.[length] || 0;
+                                                                                    return lengthMissing > 0 && length >= prefix.length;
+                                                                                });
+                                                                                const targetLength = availableLengths.length > 0 ? Math.min(...availableLengths) : shortestLength;
+                                                                                
+                                                                                openModal(prefix, targetLength, subgroups);
+                                                                            }}
+                                                                            className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-mono hover:bg-green-200 transition-colors cursor-pointer"
+                                                                            title={`Veure combinacions per ${prefix.toUpperCase()}`}
+                                                                        >
                                                                             {prefix.toUpperCase()}
                                                                             <span className="ml-1 text-green-600">({missing})</span>
-                                                                        </span>
+                                                                        </button>
                                                                     );
                                                                 })}
                                                                 {prefixes.length > 6 && (
@@ -477,6 +497,16 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                     </div>
                 </div>
             )}
+
+
+            <PrefixCombinationsModal
+                prefix={modalState.prefix}
+                length={modalState.length}
+                subgroups={modalState.subgroups}
+                availableLetters={totesLesLletres}
+                isOpen={modalState.isOpen}
+                onClose={closeModal}
+            />
         </div>
     );
 }
