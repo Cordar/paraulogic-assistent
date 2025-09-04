@@ -188,7 +188,7 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                     <h5 className="font-medium mb-4 text-lg">Progrés per subgrups:</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.entries(pistes.paraulesPerSubgrup)
-                            .filter(([_, count]) => count > 0)
+                            .filter(([__, count]) => count > 0)
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([subgrup, expectedCount]) => {
                                 const foundCount = analisiParaules.perSubgrup[subgrup] || 0;
@@ -217,7 +217,7 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                     <h5 className="font-medium mb-4 text-lg">Progrés per prefixos:</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.entries(pistes.paraulesPerPrefix)
-                            .filter(([_, count]) => count > 0)
+                            .filter(([__, count]) => count > 0)
                             .sort(([a], [b]) => a.localeCompare(b))
                             .map(([prefix, expectedCount]) => {
                                 const foundCount = analisiParaules.perPrefix[prefix] || 0;
@@ -231,7 +231,7 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                                         </div>
                                         {getProgressBar(foundCount, expectedCount)}
                                         <div className="text-xs text-gray-600 mt-1">
-                                            Paraules que comencen per "{prefix}"
+                                            Paraules que comencen per &quot;{prefix}&quot;
                                         </div>
                                     </div>
                                 );

@@ -18,17 +18,6 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
 
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
 
-    const autoSave = () => {
-        const dadesActuals = obtenirDadesGuardades();
-        if (dadesActuals) {
-            const dadesActualitzades = {
-                ...dadesActuals,
-                paraulesTrobades: paraulesTrobades
-            };
-            guardarDades(dadesActualitzades);
-        }
-    };
-
     const validarParaula = (paraula: string): string | null => {
         if (!paraula.trim()) {
             return 'Introdueix una paraula';
@@ -50,7 +39,7 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
         }
 
         // Check if all letters are available
-        for (let lletra of paraulaClean) {
+        for (const lletra of paraulaClean) {
             if (!totesLesLletres.includes(lletra)) {
                 return `La lletra "${lletra.toUpperCase()}" no està disponible`;
             }

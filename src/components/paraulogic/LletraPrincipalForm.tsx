@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { GameData } from '@/types/paraulogic';
 import { guardarDades } from '@/utils/localStorage';
-import Button from './Button';
 
 interface LletraPrincipalFormProps {
     onComplete: () => void;

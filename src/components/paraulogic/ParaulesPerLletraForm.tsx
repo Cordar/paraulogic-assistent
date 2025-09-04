@@ -5,7 +5,7 @@ import { useState } from 'react';
 interface ParaulesPerLletraFormProps {
     lletres: string[];
     paraulesPerLletra: { [key: string]: { count: number, lengths: number[], lengthCounts?: { [length: number]: number } } };
-    onChange: (lletra: string, field: 'count' | 'lengths' | 'lengthCounts', value: any) => void;
+    onChange: (lletra: string, field: 'count' | 'lengths' | 'lengthCounts', value: number | number[] | { [length: number]: number }) => void;
 }
 
 export default function ParaulesPerLletraForm({ 

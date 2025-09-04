@@ -28,7 +28,7 @@ export default function PistesForm({ dades, onComplete, onCancel }: PistesFormPr
 
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
 
-    const handleParaulesPerLletraChange = (lletra: string, field: 'count' | 'lengths' | 'lengthCounts', value: any) => {
+    const handleParaulesPerLletraChange = (lletra: string, field: 'count' | 'lengths' | 'lengthCounts', value: number | number[] | { [length: number]: number }) => {
     setParaulesPerLletra(prev => ({
         ...prev,
         [lletra]: {

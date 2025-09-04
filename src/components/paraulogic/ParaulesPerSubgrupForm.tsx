@@ -46,7 +46,7 @@ export default function ParaulesPerSubgrupForm({
 
         // Validate that all letters are from the available letters
         const totesLesLletres = lletres.join('');
-        for (let lletra of subgrup) {
+        for (const lletra of subgrup) {
             if (!totesLesLletres.includes(lletra)) {
                 setError(`La lletra "${lletra}" no està disponible`);
                 inputRef.current?.focus();
@@ -92,7 +92,7 @@ export default function ParaulesPerSubgrupForm({
     };
 
     const subgrupsExistents = Object.entries(paraulesPerSubgrup)
-        .filter(([_, count]) => count > 0)
+        .filter(([__, count]) => count > 0)
         .sort(([a], [b]) => a.localeCompare(b));
 
     return (

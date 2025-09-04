@@ -137,7 +137,7 @@ function AssistentDinamic() {
   if (pas === 0) {
     return (
       <div className="text-center">
-        <p className="mb-4 text-gray-600">Benvingut a l'assistent del Paraulògic</p>
+        <p className="mb-4 text-gray-600">Benvingut a l&apos;assistent del Paraulògic</p>
         <Button fun={iniciar}>Iniciar</Button>
       </div>
     );
