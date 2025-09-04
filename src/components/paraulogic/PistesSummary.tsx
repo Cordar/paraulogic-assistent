@@ -42,8 +42,13 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
     // Analyze words by subgroups
     Object.keys(pistes.paraulesPerSubgrup).forEach(subgrup => {
         if (pistes.paraulesPerSubgrup[subgrup] > 0) {
+            const lletresSubgrup = new Set(subgrup.split(''));
             const paraulesAmbSubgrup = paraulesTrobades.filter(paraula => {
-                return subgrup.split('').every(lletra => paraula.includes(lletra));
+                const lletresParaula = new Set(paraula.split(''));
+                
+                // Check if both sets are identical (same size and same elements)
+                return lletresParaula.size === lletresSubgrup.size && 
+                    [...lletresParaula].every(lletra => lletresSubgrup.has(lletra));
             });
             analisiParaules.perSubgrup[subgrup] = paraulesAmbSubgrup.length;
         }
