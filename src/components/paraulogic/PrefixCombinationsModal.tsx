@@ -1,5 +1,6 @@
 'use client'
 
+import { Pistes } from "@/types/paraulogic";
 import { useState, useEffect, useMemo } from 'react';
 
 interface PrefixCombinationsModalProps {
@@ -9,6 +10,7 @@ interface PrefixCombinationsModalProps {
     availableLetters: string[];
     mainLetter: string;
     foundWords: string[]; // Global list of found words
+    pistes: Pistes;
     onAddFoundWord: (word: string) => void; // Function to add word to found words
     onRemoveFoundWord: (word: string) => void; // Function to remove word from found words
     isOpen: boolean;
@@ -30,6 +32,7 @@ export default function PrefixCombinationsModal({
     availableLetters,
     mainLetter,
     foundWords,
+    pistes,
     onAddFoundWord,
     onRemoveFoundWord,
     isOpen,
@@ -38,7 +41,7 @@ export default function PrefixCombinationsModal({
     const [triedCombinations, setTriedCombinations] = useState<Set<string>>(new Set());
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Define vowels and consonants for Catalan/Spanish
+    // Define vowels and consonants for Catalan
     const vowels = new Set(['a', 'e', 'i', 'o', 'u']);
     const allowedDoubleConsonants = new Set(['r', 's', 'l']);
     
@@ -56,11 +59,38 @@ export default function PrefixCombinationsModal({
         'qb', 'qp', 'qt', 'qk', 'qg', 'qf', 'qx', 'qz'
     ]);
 
+    // Catalan-specific consonant combinations that work at the beginning
+    const catalanBeginningCombs = new Set([
+        'br', 'cr', 'dr', 'fr', 'gr', 'pr', 'tr',
+        'bl', 'cl', 'fl', 'gl', 'pl',
+        'sc', 'sp', 'st', 'sq'
+    ]);
+
+    // Catalan-specific consonant combinations that work at the end
+    const catalanEndCombs = new Set([
+        'nt', 'nd', 'ng', 'nk', 'mp', 'mb', 
+        'lt', 'rt', 'rn', 'rm', 'rp', 'rc', 'rd', 'rf', 'rg',
+        'st', 'ct', 'pt', 'xt', 'ny'
+    ]);
+
+    // Bad sounding vowel combinations specific to Catalan
+    const badVowelCombinations = new Set([
+        'oa', 'ao', 'oe', 'eo', 'uo', 'ou', 
+        'ae', 'ea', 'oo', 'aa', 'ii', 'uu', 'ee',
+        'io', 'oi'
+    ]);
+
+    // Natural/acceptable vowel combinations in Catalan
+    const catalanDiphthongs = new Set([
+        'ai', 'au', 'ei', 'eu', 'iu', 'ui',
+        'ia', 'ie', 'ua', 'ue'
+    ]);
+
     // Helper function to check if a word has more than 2 consecutive letters
     const hasMoreThanTwoConsecutiveLetters = (word: string): boolean => {
         for (let i = 0; i < word.length - 2; i++) {
             if (word[i] === word[i + 1] && word[i + 1] === word[i + 2]) {
-                return true; // Found 3 consecutive identical letters
+                return true;
             }
         }
         return false;
@@ -68,20 +98,50 @@ export default function PrefixCombinationsModal({
 
     // Function to calculate probability score for a word
     const calculateProbabilityScore = (word: string): number => {
-        let score = 100; // Start with base score
+        let score = 100;
 
         // Check for consecutive repeated letters (except r, s, l)
         for (let i = 0; i < word.length - 1; i++) {
             if (word[i] === word[i + 1]) {
                 if (!allowedDoubleConsonants.has(word[i])) {
-                    score -= 30; // Heavy penalty for bad double letters
+                    score -= 30;
                 } else {
-                    score += 5; // Small bonus for natural double letters (rr, ss, ll)
+                    score += 5;
                 }
             }
         }
 
-        // Check for consecutive consonants
+        // Check for bad vowel combinations specific to Catalan
+        for (let i = 0; i < word.length - 1; i++) {
+            const currentChar = word[i];
+            const nextChar = word[i + 1];
+            
+            if (vowels.has(currentChar) && vowels.has(nextChar)) {
+                const vowelPair = currentChar + nextChar;
+                
+                if (badVowelCombinations.has(vowelPair)) {
+                    if (['oa', 'ao', 'oe', 'eo'].includes(vowelPair)) {
+                        score -= 30;
+                    } else if (['uo', 'ou', 'ae', 'ea'].includes(vowelPair)) {
+                        score -= 25;
+                    } else if (['oo', 'aa', 'ii', 'uu', 'ee'].includes(vowelPair)) {
+                        score -= 20;
+                    } else if (['io', 'oi'].includes(vowelPair)) {
+                        score -= 15;
+                    } else {
+                        score -= 10;
+                    }
+                } else if (catalanDiphthongs.has(vowelPair)) {
+                    if (['ai', 'au', 'ei', 'eu', 'iu', 'ui'].includes(vowelPair)) {
+                        score += 8;
+                    } else if (['ia', 'ie', 'ua', 'ue'].includes(vowelPair)) {
+                        score += 5;
+                    }
+                }
+            }
+        }
+
+        // Check for consecutive consonants and their positions
         let consecutiveConsonants = 0;
         let currentConsonantCluster = '';
         
@@ -89,74 +149,173 @@ export default function PrefixCombinationsModal({
             const char = word[i];
             
             if (!vowels.has(char)) {
-                // It's a consonant
                 consecutiveConsonants++;
                 currentConsonantCluster += char;
                 
                 if (consecutiveConsonants >= 2) {
-                    // Check for particularly bad consonant combinations
                     const lastTwo = currentConsonantCluster.slice(-2);
+                    
                     if (badConsonantCombinations.has(lastTwo)) {
-                        score -= 50; // Very heavy penalty for bad combinations
+                        score -= 50;
                     } else if (consecutiveConsonants === 2) {
-                        // Check for some natural combinations that are okay
-                        const naturalCombos = ['br', 'cr', 'dr', 'fr', 'gr', 'pr', 'tr', 
-                                             'bl', 'cl', 'fl', 'gl', 'pl', 
-                                             'ch', 'th', 'sh', 'st', 'sc', 'sp', 'sm', 'sn',
-                                             'nt', 'nd', 'ng', 'nk', 'mp', 'mb', 
-                                             'lt', 'rt', 'rn', 'rm', 'rp', 'rb', 'rc', 'rd', 'rf', 'rg'];
+                        const allCatalanCombos = new Set([
+                            ...catalanBeginningCombs, 
+                            ...catalanEndCombs
+                        ]);
                         
-                        if (naturalCombos.includes(lastTwo)) {
-                            score += 2; // Small bonus for natural combinations
+                        if (allCatalanCombos.has(lastTwo)) {
+                            let positionPenalty = 0;
+                            const isAtBeginning = i === 1;
+                            const isAtEnd = i === word.length - 1;
+                            
+                            if (isAtBeginning) {
+                                if (catalanEndCombs.has(lastTwo) && !catalanBeginningCombs.has(lastTwo)) {
+                                    positionPenalty = 25;
+                                }
+                            } else if (isAtEnd) {
+                                if (catalanBeginningCombs.has(lastTwo) && !catalanEndCombs.has(lastTwo)) {
+                                    positionPenalty = 25;
+                                }
+                            }
+                            
+                            if (positionPenalty > 0) {
+                                score -= positionPenalty;
+                            } else {
+                                score += 3;
+                            }
                         } else {
-                            score -= 15; // Penalty for unnatural consonant pairs
+                            score -= 15;
                         }
                     } else if (consecutiveConsonants >= 3) {
-                        score -= 25; // Heavy penalty for 3+ consecutive consonants
+                        score -= 30;
                     }
                 }
             } else {
-                // It's a vowel - reset consonant counter
                 consecutiveConsonants = 0;
                 currentConsonantCluster = '';
             }
         }
 
+        // Catalan-specific position checks
+        const firstChar = word[0];
+        const lastChar = word[word.length - 1];
+        
+        if (!vowels.has(firstChar)) {
+            if (['x', 'z', 'q', 'w'].includes(firstChar)) {
+                score -= 20;
+            }
+        }
+        
+        if (!vowels.has(lastChar)) {
+            if (['h', 'j', 'q', 'w', 'x', 'z', 'b', 'k'].includes(lastChar)) {
+                score -= 15;
+            }
+            
+            if (lastChar === 'd') {
+                score -= 35;
+            }
+            
+            if (['t', 'n', 'r', 's', 'l', 'm'].includes(lastChar)) {
+                score += 3;
+            }
+        }
+
+        // Check for bad ending patterns
+        if (word.endsWith('rr')) {
+            score -= 30;
+        }
+        
+        if (word.endsWith('ll') && word.length > 2) {
+            score -= 10;
+        }
+        
+        if (word.endsWith('ss')) {
+            score -= 25;
+        }
+
         // Bonus for alternating vowel-consonant patterns
         let alternatingBonus = 0;
+        let hasGoodAlternation = true;
         for (let i = 0; i < word.length - 1; i++) {
             const current = vowels.has(word[i]);
             const next = vowels.has(word[i + 1]);
             if (current !== next) {
-                alternatingBonus += 2; // Small bonus for alternating pattern
+                alternatingBonus += 2;
+            }
+            if (current && next) {
+                const vowelPair = word[i] + word[i + 1];
+                if (badVowelCombinations.has(vowelPair)) {
+                    hasGoodAlternation = false;
+                }
             }
         }
-        score += alternatingBonus;
+        
+        if (hasGoodAlternation) {
+            score += alternatingBonus;
+        } else {
+            score += Math.floor(alternatingBonus / 2);
+        }
 
-        // Bonus for words starting with consonant (more natural in Catalan/Spanish)
         if (!vowels.has(word[0])) {
             score += 5;
         }
 
-        // Bonus for words ending with vowel (common in Catalan/Spanish)
         if (vowels.has(word[word.length - 1])) {
-            score += 3;
+            score += 8;
         }
 
-        // Penalty for too many vowels in a row
+        // Enhanced penalty for too many vowels in a row
         let consecutiveVowels = 0;
         for (let i = 0; i < word.length; i++) {
             if (vowels.has(word[i])) {
                 consecutiveVowels++;
                 if (consecutiveVowels >= 3) {
-                    score -= 10; // Penalty for 3+ consecutive vowels
+                    score -= 20 + (consecutiveVowels - 3) * 8;
                 }
             } else {
                 consecutiveVowels = 0;
             }
         }
 
-        // Ensure score doesn't go negative
+        // Bonus for characteristic Catalan letter patterns
+        if (word.includes('rr') && !word.endsWith('rr')) {
+            score += 10;
+        }
+        if (word.includes('ll') && !word.endsWith('ll')) {
+            score += 8;
+        }
+        if (word.includes('ny')) {
+            score += 10;
+        }
+        
+        if (word.includes('ix') || word.includes('ig') || word.includes('eix')) {
+            score += 8;
+        }
+        
+        if (word.includes('qu')) {
+            score += 5;
+        }
+
+        // Catalan-specific word ending bonuses
+        if (word.endsWith('a') || word.endsWith('e') || word.endsWith('i') || 
+            word.endsWith('o') || word.endsWith('u')) {
+            score += 5;
+        }
+        
+        if (word.endsWith('at') || word.endsWith('et') || word.endsWith('it') || 
+            word.endsWith('ot') || word.endsWith('ut')) {
+            score += 4;
+        }
+        
+        if (word.endsWith('ar') || word.endsWith('er') || word.endsWith('ir')) {
+            score += 6;
+        }
+
+        // Penalty for very un-Catalan patterns
+        if (word.includes('w') || word.includes('k')) {
+            score -= 25;
+        }
+
         return Math.max(score, 0);
     };
 
@@ -205,7 +364,6 @@ export default function PrefixCombinationsModal({
         
         const currentStatus = getCombinationStatus(combination);
         
-        // Handle tried status
         setTriedCombinations(prev => {
             const newSet = new Set(prev);
             if (newStatus === 'tried') {
@@ -216,14 +374,11 @@ export default function PrefixCombinationsModal({
             return newSet;
         });
         
-        // Handle correct status - sync with found words
         if (newStatus === 'correct' && currentStatus !== 'correct') {
-            // Mark as correct - add to found words if not already there
             if (!foundWords.includes(combination)) {
                 onAddFoundWord(combination);
             }
         } else if (newStatus !== 'correct' && currentStatus === 'correct') {
-            // Unmark as correct - remove from found words
             onRemoveFoundWord(combination);
         }
     };
@@ -246,7 +401,6 @@ export default function PrefixCombinationsModal({
                 return [];
             }
 
-            // Check if prefix has more than 2 consecutive letters
             if (hasMoreThanTwoConsecutiveLetters(prefix)) {
                 return [];
             }
@@ -275,7 +429,6 @@ export default function PrefixCombinationsModal({
                     return;
                 }
 
-                // Filter out combinations with more than 2 consecutive letters
                 if (hasMoreThanTwoConsecutiveLetters(currentCombo)) {
                     return;
                 }
@@ -299,7 +452,6 @@ export default function PrefixCombinationsModal({
                 const newHasMainLetter = hasMainLetter || letter === mainLetter;
                 const newCombo = currentCombo + letter;
                 
-                // Early pruning: if adding this letter would create 3 consecutive identical letters, skip it
                 const len = newCombo.length;
                 if (len >= 3 && 
                     newCombo[len - 1] === newCombo[len - 2] && 
@@ -317,12 +469,11 @@ export default function PrefixCombinationsModal({
             array.findIndex(c => c.combination === combo.combination) === index
         );
 
-        // Sort by probability score (highest first), then alphabetically
         return uniqueResults.sort((a, b) => {
             if (a.probabilityScore !== b.probabilityScore) {
-                return b.probabilityScore - a.probabilityScore; // Higher score first
+                return b.probabilityScore - a.probabilityScore;
             }
-            return a.combination.localeCompare(b.combination); // Alphabetical as secondary sort
+            return a.combination.localeCompare(b.combination);
         });
     }, [prefix, length, subgroups, availableLetters, mainLetter, isOpen]);
 
@@ -335,11 +486,15 @@ export default function PrefixCombinationsModal({
     }, [baseCombinations, triedCombinations, foundWords]);
 
     const triedCount = combinations.filter(c => c.status === 'tried').length;
-    const correctCount = combinations.filter(c => c.status === 'correct').length;
+    const correctCount = foundWords?.filter(word => word.startsWith(prefix)).length || 0;
     const untriedCount = combinations.filter(c => c.status === 'untried').length;
+    const totalWordsWithPrefix = pistes?.paraulesPerPrefix[prefix] || 0;
+    const missingCount = totalWordsWithPrefix - correctCount;
 
     // Get probability distribution for display
     const probabilityStats = useMemo(() => {
+        if (combinations.length === 0) return { max: 0, min: 0, avg: 0 };
+        
         const scores = combinations.map(c => c.probabilityScore);
         const maxScore = Math.max(...scores);
         const minScore = Math.min(...scores);
@@ -381,6 +536,45 @@ export default function PrefixCombinationsModal({
                     </button>
                 </div>
 
+                {/* Always visible Missing Words Counter */}
+                <div className="sticky top-[120px] bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 border-b border-gray-300 shadow-sm z-20">
+                    <div className="flex items-center justify-center">
+                        <div className="flex items-center space-x-4 text-center">
+                            <div className="flex items-center space-x-2">
+                                <span className="text-2xl">📝</span>
+                                <div>
+                                    <div className="text-lg font-bold">
+                                        {missingCount} {missingCount === 1 ? 'possible paraula' : 'possibles paraules'} a trobar
+                                    </div>
+                                    <div className="text-xs opacity-90">
+                                        amb prefix "{prefix.toUpperCase()}" ({length} lletres)
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="border-l border-white/30 pl-4">
+                                <div className="text-sm font-medium">
+                                    {correctCount} / {totalWordsWithPrefix} trobades
+                                </div>
+                                <div className="text-xs opacity-90">
+                                    {totalWordsWithPrefix > 0 ? Math.round((correctCount / totalWordsWithPrefix) * 100) : 0}% complet
+                                </div>
+                            </div>
+                            
+                            {totalWordsWithPrefix > 0 && (
+                                <div className="border-l border-white/30 pl-4">
+                                    <div className="w-16 bg-white/20 rounded-full h-2 mt-1">
+                                        <div 
+                                            className="h-2 rounded-full bg-white transition-all duration-300"
+                                            style={{ width: `${(correctCount / totalWordsWithPrefix) * 100}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Info */}
                 <div className="p-4 bg-blue-50 border-b border-gray-200">
                     <div className="text-sm text-blue-800">
@@ -413,7 +607,7 @@ export default function PrefixCombinationsModal({
                             </div>
                         </div>
                         <div className="mt-2 text-xs text-blue-700">
-                            📊 Ordenades per probabilitat de ser paraules reals (patrons de vocals/consonants)
+                            📊 Ordenades per probabilitat • Considera patrons vocals/consonants i posicions de combinacions catalanes
                         </div>
                     </div>
                 </div>
@@ -422,7 +616,7 @@ export default function PrefixCombinationsModal({
                 {combinations.length > 0 && (
                     <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">Progrés</span>
+                            <span className="text-sm font-medium text-gray-700">Progrés d'exploració</span>
                             <span className="text-sm text-gray-600">
                                 {Math.round(((triedCount + correctCount) / combinations.length) * 100)}% explorat
                             </span>
@@ -443,7 +637,7 @@ export default function PrefixCombinationsModal({
                             </div>
                         </div>
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>✅ {correctCount} correctes</span>
+                            <span>✅ {correctCount} trobades</span>
                             <span>🔴 {triedCount} provades</span>
                             <span>⚪ {untriedCount} pendents</span>
                         </div>
@@ -479,10 +673,8 @@ export default function PrefixCombinationsModal({
                                     </h4>
                                     <div className="text-sm text-gray-600">
                                         <div>Clica esquerra: marcar com a <span className="text-orange-600 font-medium">provada</span></div>
-                                        <div>Clica dreta: marcar com a <span className="text-green-600 font-medium">correcta</span> (s'afegeix a la llista global)</div>
-                                        <div className="text-blue-600 mt-1">
-                                            Ordenades per probabilitat • Les més probables apareixen primer
-                                        </div>
+                                        <div>Clica dreta: marcar com a <span className="text-green-600 font-medium">trobada</span> (s'afegeix a la llista global)</div>
+                                        <div className="text-blue-600 mt-1">Totes inclouen la lletra principal {mainLetter.toUpperCase()}</div>
                                     </div>
                                 </div>
                                 
@@ -490,7 +682,6 @@ export default function PrefixCombinationsModal({
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => {
-                                            // Remove all current modal combinations from found words
                                             const currentModalCorrectCombinations = combinations
                                                 .filter(c => c.status === 'correct')
                                                 .map(c => c.combination);
@@ -501,7 +692,7 @@ export default function PrefixCombinationsModal({
                                         className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                                         disabled={correctCount === 0}
                                     >
-                                        Netejar correctes
+                                        Netejar trobades
                                     </button>
                                     <button
                                         onClick={() => {
@@ -523,97 +714,91 @@ export default function PrefixCombinationsModal({
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                {combinations.map(combo => {
-                                    // Determine color intensity based on probability score
-                                    const scoreRatio = (combo.probabilityScore - probabilityStats.min) / 
-                                                      Math.max(1, probabilityStats.max - probabilityStats.min);
-                                    const isHighProbability = scoreRatio > 0.7;
-                                    const isMediumProbability = scoreRatio > 0.4;
-
-                                    return (
-                                        <div key={combo.combination} className="relative">
-                                            <button
-                                                onClick={() => {
-                                                    const currentStatus = combo.status;
-                                                    const newStatus = currentStatus === 'untried' ? 'tried' : 
-                                                                    currentStatus === 'tried' ? 'untried' : 'untried';
-                                                    toggleCombinationStatus(combo.combination, newStatus);
-                                                }}
-                                                onContextMenu={(e) => {
-                                                    e.preventDefault();
-                                                    const currentStatus = combo.status;
-                                                    const newStatus = currentStatus === 'correct' ? 'untried' : 'correct';
-                                                    toggleCombinationStatus(combo.combination, newStatus);
-                                                }}
-                                                className={`
-                                                    w-full px-3 py-3 rounded-lg border-2 font-mono text-sm font-medium
-                                                    transition-all duration-200 transform hover:scale-105 active:scale-95
-                                                    ${combo.status === 'correct' 
-                                                        ? 'bg-green-100 text-green-800 border-green-400 shadow-md' 
-                                                        : combo.status === 'tried'
-                                                        ? 'bg-orange-100 text-orange-700 border-orange-300'
-                                                        : isHighProbability
-                                                        ? 'bg-blue-100 text-blue-900 border-blue-400 hover:bg-blue-200 hover:shadow-md font-bold'
-                                                        : isMediumProbability
-                                                        ? 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100 hover:shadow-md'
-                                                        : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
-                                                    }
-                                                `}
-                                                title={`Subgrups: ${combo.matchingSubgroups.join(', ')}\nProbabilitat: ${combo.probabilityScore}/100\nClica esquerra: marcar com provada\nClica dreta: marcar com correcta\nEstat actual: ${combo.status === 'correct' ? 'correcta (a la llista global)' : combo.status === 'tried' ? 'provada' : 'pendent'}`}
-                                            >
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="flex items-center gap-1">
-                                                        {combo.status === 'correct' && <span className="text-xs">✅</span>}
-                                                        {combo.status === 'tried' && <span className="text-xs">🔴</span>}
-                                                        <span>
-                                                            {combo.combination.toUpperCase().split('').map((letter, index) => (
-                                                                <span 
-                                                                    key={index}
-                                                                    className={letter === mainLetter.toUpperCase() ? 'text-red-600 font-bold' : ''}
-                                                                >
-                                                                    {letter}
-                                                                </span>
-                                                            ))}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
+                                {combinations.map(combo => (
+                                    <div key={combo.combination} className="relative">
+                                        <button
+                                            onClick={() => {
+                                                const currentStatus = combo.status;
+                                                const newStatus = currentStatus === 'untried' ? 'tried' : 
+                                                                currentStatus === 'tried' ? 'untried' : 'untried';
+                                                toggleCombinationStatus(combo.combination, newStatus);
+                                            }}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                const currentStatus = combo.status;
+                                                const newStatus = currentStatus === 'correct' ? 'untried' : 'correct';
+                                                toggleCombinationStatus(combo.combination, newStatus);
+                                            }}
+                                            className={`
+                                                w-full px-3 py-3 rounded-lg border-2 font-mono text-sm font-medium
+                                                transition-all duration-200 transform hover:scale-105 active:scale-95
+                                                ${combo.status === 'correct' 
+                                                    ? 'bg-green-100 text-green-800 border-green-400 shadow-md' 
+                                                    : combo.status === 'tried'
+                                                    ? 'bg-orange-100 text-orange-700 border-orange-300'
+                                                    : 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100 hover:shadow-md'
+                                                }
+                                            `}
+                                            title={`Subgrups: ${combo.matchingSubgroups.join(', ')}\nProbabilitat: ${combo.probabilityScore}/100\nClica esquerra: marcar com provada\nClica dreta: marcar com trobada\nEstat actual: ${combo.status === 'correct' ? 'trobada (a la llista global)' : combo.status === 'tried' ? 'provada' : 'pendent'}`}
+                                        >
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="flex items-center gap-1">
+                                                    {combo.status === 'correct' && <span className="text-xs">✅</span>}
+                                                    {combo.status === 'tried' && <span className="text-xs">🔴</span>}
+                                                    <span>
+                                                        {combo.combination.toUpperCase().split('').map((letter, index) => (
+                                                            <span 
+                                                                key={index}
+                                                                className={letter === mainLetter.toUpperCase() ? 'text-red-600 font-bold' : ''}
+                                                            >
+                                                                {letter}
+                                                            </span>
+                                                        ))}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                    <span>
                                                         {combo.matchingSubgroups.length > 1 
                                                             ? `${combo.matchingSubgroups.length} subgrups`
                                                             : combo.matchingSubgroups[0]?.toUpperCase()
                                                         }
-                                                    </div>
-                                                    <div className={`text-xs font-bold ${
-                                                        isHighProbability ? 'text-green-600' :
-                                                        isMediumProbability ? 'text-yellow-600' :
-                                                        'text-gray-500'
-                                                    }`}>
-                                                        {combo.probabilityScore}
-                                                    </div>
+                                                    </span>
+                                                    <span className="text-blue-600">• {combo.probabilityScore}</span>
                                                 </div>
-                                            </button>
-                                            
-                                            {/* Probability indicator */}
-                                            <div className={`absolute -top-1 -right-1 text-xs px-1 rounded-full font-bold ${
-                                                isHighProbability ? 'bg-green-500 text-white' :
-                                                isMediumProbability ? 'bg-yellow-500 text-white' :
-                                                'bg-gray-400 text-white'
-                                            }`}>
-                                                {isHighProbability ? '★' : isMediumProbability ? '◐' : '◯'}
                                             </div>
-                                            
-                                            {/* Status indicator */}
-                                            {combo.status !== 'untried' && (
-                                                <div className={`absolute -top-1 -left-1 text-xs px-1 rounded-full font-bold ${
-                                                    combo.status === 'correct' 
-                                                        ? 'bg-green-500 text-white' 
-                                                        : 'bg-orange-500 text-white'
-                                                }`}>
-                                                    {combo.status === 'correct' ? '✓' : '×'}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                        </button>
+                                        
+                                        {/* Multiple subgroups indicator */}
+                                        {combo.matchingSubgroups.length > 1 && (
+                                            <div className="absolute -top-1 -right-1 bg-purple-400 text-purple-900 text-xs px-1 rounded-full font-bold">
+                                                {combo.matchingSubgroups.length}
+                                            </div>
+                                        )}
+                                        
+                                        {/* Status indicator */}
+                                        {combo.status !== 'untried' && (
+                                            <div className={`absolute -top-1 -left-1 text-xs px-1 rounded-full font-bold ${
+                                                combo.status === 'correct' 
+                                                    ? 'bg-green-500 text-white' 
+                                                    : 'bg-orange-500 text-white'
+                                            }`}>
+                                                {combo.status === 'correct' ? '✓' : '×'}
+                                            </div>
+                                        )}
+
+                                        {/* Probability score indicator for high/low scores */}
+                                        {combo.probabilityScore > 80 && (
+                                            <div className="absolute -top-1 -left-1 text-xs px-1 rounded-full font-bold bg-green-500 text-white">
+                                                ★
+                                            </div>
+                                        )}
+                                        {combo.probabilityScore < 20 && (
+                                            <div className="absolute -top-1 -left-1 text-xs px-1 rounded-full font-bold bg-red-500 text-white">
+                                                ★
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Statistics */}

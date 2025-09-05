@@ -512,6 +512,7 @@ export default function PistesSummary({
                 availableLetters={totesLesLletres}
                 mainLetter={dades.lletraPrincipal}
                 foundWords={paraulesTrobades}
+                pistes={pistes}
                 onAddFoundWord={onAddFoundWord}
                 onRemoveFoundWord={onRemoveFoundWord}
                 isOpen={modalState.isOpen}
