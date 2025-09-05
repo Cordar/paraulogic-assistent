@@ -65,18 +65,31 @@ function AssistentDinamic() {
 
   // Function to add a word to the found words list
   const handleAddFoundWord = (word: string) => {
-    if (!dades || !dades.paraulesTrobades) return;
+    if (!dades) return;
+
+    let paraulesTrobades: string[] = [];
+    if (!dades.paraulesTrobades) {
+      const dadesGuardades = obtenirDadesGuardades();
+      if (dadesGuardades) {
+        const updatedDades = {
+          ...dadesGuardades,
+          paraulesTrobades: []
+        };
+        setDades(updatedDades);
+        guardarDades(updatedDades);
+      }
+    } else {
+      paraulesTrobades = dades.paraulesTrobades;
+    }
 
     // Check if word already exists to avoid duplicates
-    if (dades.paraulesTrobades.includes(word)) {
-      console.log('Word already exists:', word);
+    if (paraulesTrobades.includes(word)) {
       return;
     }
 
-    console.log('Adding word to found list:', word);
     const updatedDades = {
       ...dades,
-      paraulesTrobades: [...dades.paraulesTrobades, word].sort()
+      paraulesTrobades: [...paraulesTrobades, word].sort()
     };
     
     setDades(updatedDades);
