@@ -2,23 +2,30 @@
 
 import { useState, useRef } from 'react';
 import { GameData } from '@/types/paraulogic';
-import { guardarDades, obtenirDadesGuardades } from '@/utils/localStorage';
 import Button from "./Button";
 
 interface ParaulesTrobadesFormProps {
     dades: GameData;
+    onAddFoundWord: (word: string) => void;
+    onRemoveFoundWord: (word: string) => void;
     onComplete: () => void;
     onCancel: () => void;
 }
 
-export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: ParaulesTrobadesFormProps) {
+export default function ParaulesTrobadesForm({ 
+    dades, 
+    onAddFoundWord, 
+    onRemoveFoundWord, 
+    onComplete, 
+    onCancel 
+}: ParaulesTrobadesFormProps) {
     const [novaParaula, setNovaParaula] = useState('');
     const [error, setError] = useState('');
-    const [paraulesTrobades, setParaulesTrobades] = useState<string[]>(dades.paraulesTrobades || []);
     const inputRef = useRef<HTMLInputElement>(null);
     const [showDetails, setShowDetails] = useState(false);
 
     const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
+    const paraulesTrobades = dades.paraulesTrobades || [];
 
     const validarParaula = (paraula: string): string | null => {
         if (!paraula.trim()) {
@@ -66,34 +73,16 @@ export default function ParaulesTrobadesForm({ dades, onComplete, onCancel }: Pa
         }
 
         const paraulaClean = novaParaula.toLowerCase().trim();
-        const novesParaules = [...paraulesTrobades, paraulaClean].sort();
-        setParaulesTrobades(novesParaules);
+        
+        // Use the prop function to add the word
+        onAddFoundWord(paraulaClean);
         setNovaParaula('');
-
-        const dadesActuals = obtenirDadesGuardades();
-        if (dadesActuals) {
-            const dadesActualitzades = {
-                ...dadesActuals,
-                paraulesTrobades: novesParaules
-            };
-            guardarDades(dadesActualitzades);
-        }
         onComplete();
     };
 
     const handleEliminarParaula = (paraula: string) => {
-        const novesParaules = paraulesTrobades.filter(p => p !== paraula);
-        setParaulesTrobades(novesParaules);
-
-        const dadesActuals = obtenirDadesGuardades();
-        if (dadesActuals) {
-            const dadesActualitzades = {
-                ...dadesActuals,
-                paraulesTrobades: novesParaules
-            };
-            guardarDades(dadesActualitzades);
-        }
-
+        // Use the prop function to remove the word
+        onRemoveFoundWord(paraula);
         onComplete();
     };
 

@@ -7,9 +7,15 @@ import { usePrefixModal } from '@/hooks/usePrefixModal';
 
 interface PistesSummaryProps {
     dades: GameData;
+    onAddFoundWord: (word: string) => void;
+    onRemoveFoundWord: (word: string) => void;
 }
 
-export default function PistesSummary({ dades }: PistesSummaryProps) {
+export default function PistesSummary({ 
+    dades, 
+    onAddFoundWord, 
+    onRemoveFoundWord 
+}: PistesSummaryProps) {
 
     if (!dades.pistes|| !dades.paraulesTrobades) {
         return (
@@ -504,6 +510,10 @@ export default function PistesSummary({ dades }: PistesSummaryProps) {
                 length={modalState.length}
                 subgroups={modalState.subgroups}
                 availableLetters={totesLesLletres}
+                mainLetter={dades.lletraPrincipal}
+                foundWords={paraulesTrobades}
+                onAddFoundWord={onAddFoundWord}
+                onRemoveFoundWord={onRemoveFoundWord}
                 isOpen={modalState.isOpen}
                 onClose={closeModal}
             />

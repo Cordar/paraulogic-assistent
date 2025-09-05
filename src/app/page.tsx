@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GameData } from '@/types/paraulogic';
-import { obtenirDadesGuardades, eliminarDades } from '@/utils/localStorage';
+import { obtenirDadesGuardades, eliminarDades, guardarDades } from '@/utils/localStorage';
 import Button from '@/components/paraulogic/Button';
 import LletraPrincipalForm from '@/components/paraulogic/LletraPrincipalForm';
 import PistesForm from '@/components/paraulogic/PistesForm';
@@ -62,6 +62,40 @@ function AssistentDinamic() {
       setPas(2);
     }
   }, []);
+
+  // Function to add a word to the found words list
+  const handleAddFoundWord = (word: string) => {
+    if (!dades || !dades.paraulesTrobades) return;
+
+    // Check if word already exists to avoid duplicates
+    if (dades.paraulesTrobades.includes(word)) {
+      console.log('Word already exists:', word);
+      return;
+    }
+
+    console.log('Adding word to found list:', word);
+    const updatedDades = {
+      ...dades,
+      paraulesTrobades: [...dades.paraulesTrobades, word].sort()
+    };
+    
+    setDades(updatedDades);
+    guardarDades(updatedDades);
+  };
+
+  // Function to remove a word from the found words list
+  const handleRemoveFoundWord = (word: string) => {
+    if (!dades || !dades.paraulesTrobades) return;
+
+    console.log('Removing word from found list:', word);
+    const updatedDades = {
+      ...dades,
+      paraulesTrobades: dades.paraulesTrobades.filter(w => w !== word)
+    };
+    
+    setDades(updatedDades);
+    guardarDades(updatedDades);
+  };
 
   function iniciar() {
     setPas(1);
@@ -127,7 +161,7 @@ function AssistentDinamic() {
   if (pas === 0) {
     return (
       <div className="text-center">
-        <p className="mb-4 text-gray-600">Benvingut a l&apos;assistent del Paraulògic</p>
+        <p className="mb-4 text-gray-600">Benvingut a l'assistent del Paraulògic</p>
         <Button fun={iniciar}>Iniciar</Button>
       </div>
     );
@@ -159,11 +193,17 @@ function AssistentDinamic() {
         />
         <ParaulesTrobadesForm
           dades={dades}
+          onAddFoundWord={handleAddFoundWord}
+          onRemoveFoundWord={handleRemoveFoundWord}
           onComplete={onWordsComplete}
           onCancel={cancelWords}
         />
         <div className="mt-4 text-center"></div>
-        <PistesSummary dades={dades} />
+        <PistesSummary 
+          dades={dades} 
+          onAddFoundWord={handleAddFoundWord}
+          onRemoveFoundWord={handleRemoveFoundWord}
+        />
       </>
       
     );
@@ -187,7 +227,11 @@ function AssistentDinamic() {
             ← Tornar
           </Button>
         </div>
-        <PistesSummary dades={dades} />
+        <PistesSummary 
+          dades={dades} 
+          onAddFoundWord={handleAddFoundWord}
+          onRemoveFoundWord={handleRemoveFoundWord}
+        />
       </div>
     );
   }
@@ -198,6 +242,8 @@ function AssistentDinamic() {
         dades={dades}
         onComplete={onWordsComplete}
         onCancel={cancelWords}
+        onAddFoundWord={handleAddFoundWord}
+        onRemoveFoundWord={handleRemoveFoundWord}
       />
     )
   }
