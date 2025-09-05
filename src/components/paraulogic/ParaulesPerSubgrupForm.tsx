@@ -134,7 +134,7 @@ export default function ParaulesPerSubgrupForm({
                 alert(`S'han afegit/actualitzat ${countAfegits} subgrups correctament!`);
             }, 100);
 
-        } catch (_) {
+        } catch {
             setError('Error processant les dades. Comprova el format.');
         }
     };

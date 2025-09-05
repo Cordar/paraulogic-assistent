@@ -9,7 +9,7 @@ interface ParaulesTrobadesFormProps {
     onAddFoundWord: (word: string) => void;
     onRemoveFoundWord: (word: string) => void;
     onComplete: () => void;
-    onCancel: () => void;
+    _onCancel: () => void;
 }
 
 export default function ParaulesTrobadesForm({ 
@@ -17,7 +17,7 @@ export default function ParaulesTrobadesForm({
     onAddFoundWord, 
     onRemoveFoundWord, 
     onComplete, 
-    onCancel 
+    _onCancel 
 }: ParaulesTrobadesFormProps) {
     const [novaParaula, setNovaParaula] = useState('');
     const [error, setError] = useState('');

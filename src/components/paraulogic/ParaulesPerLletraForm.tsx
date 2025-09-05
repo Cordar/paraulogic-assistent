@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface ParaulesPerLletraFormProps {
     lletres: string[];
@@ -15,7 +15,7 @@ export default function ParaulesPerLletraForm({
 }: ParaulesPerLletraFormProps) {
 
     // Helper function to get lengths with data
-    const getLengthsWithData = (): number[] => {
+    const getLengthsWithData = useCallback(() => {
         const usedLengths = new Set<number>();
         lletres.forEach(lletra => {
             const data = paraulesPerLletra[lletra];
@@ -31,7 +31,7 @@ export default function ParaulesPerLletraForm({
         const result = Array.from(usedLengths).sort((a, b) => a - b);
         // If no data exists, show default range
         return result.length > 0 ? result : [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    };
+    }, [lletres, paraulesPerLletra]);
 
     // State for managing visible lengths - initialize with lengths that have data
     const [visibleLengths, setVisibleLengths] = useState<number[]>(getLengthsWithData());
@@ -47,7 +47,7 @@ export default function ParaulesPerLletraForm({
             const mergedLengths = [...new Set([...visibleLengths, ...lengthsWithData])].sort((a, b) => a - b);
             setVisibleLengths(mergedLengths);
         }
-    }, [paraulesPerLletra, lletres]);
+    }, [paraulesPerLletra, lletres, getLengthsWithData, visibleLengths]);
 
     const allPossibleLengths = Array.from({ length: 18 }, (_, i) => i + 3); // 3 to 20
 

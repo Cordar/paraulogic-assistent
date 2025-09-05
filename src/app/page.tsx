@@ -10,7 +10,7 @@ import PistesSummary from '@/components/paraulogic/PistesSummary';
 import ParaulesTrobadesForm from '@/components/paraulogic/ParaulesTrobadesForm';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
-function MostrarDadesGuardades({ dades, onReset, onAddClues, onViewSummary, onManageWords }: {
+function MostrarDadesGuardades({ dades, onReset, onAddClues }: {
   dades: GameData,
   onReset: () => void,
   onAddClues: () => void,
@@ -161,7 +161,7 @@ function AssistentDinamic() {
   if (pas === 0) {
     return (
       <div className="text-center">
-        <p className="mb-4 text-gray-600">Benvingut a l'assistent del Paraulògic</p>
+        <p className="mb-4 text-gray-600">Benvingut a l&apos;assistent del Paraulògic</p>
         <Button fun={iniciar}>Iniciar</Button>
       </div>
     );
@@ -196,7 +196,7 @@ function AssistentDinamic() {
           onAddFoundWord={handleAddFoundWord}
           onRemoveFoundWord={handleRemoveFoundWord}
           onComplete={onWordsComplete}
-          onCancel={cancelWords}
+          _onCancel={cancelWords}
         />
         <div className="mt-4 text-center"></div>
         <PistesSummary 
@@ -241,7 +241,7 @@ function AssistentDinamic() {
       <ParaulesTrobadesForm
         dades={dades}
         onComplete={onWordsComplete}
-        onCancel={cancelWords}
+        _onCancel={cancelWords}
         onAddFoundWord={handleAddFoundWord}
         onRemoveFoundWord={handleRemoveFoundWord}
       />

@@ -71,7 +71,7 @@ export default function ParaulesPerPrefixForm({
                 alert(`S'han actualitzat ${countAfegits} prefixos correctament!`);
             }, 100);
             
-        } catch (_) {
+        } catch {
             setError('Error processant les dades. Comprova el format.');
         }
     };

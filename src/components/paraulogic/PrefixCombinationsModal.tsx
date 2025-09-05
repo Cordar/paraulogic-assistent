@@ -1,7 +1,7 @@
 'use client'
 
 import { Pistes } from "@/types/paraulogic";
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface PrefixCombinationsModalProps {
     prefix: string;
@@ -42,49 +42,63 @@ export default function PrefixCombinationsModal({
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Define vowels and consonants for Catalan
-    const vowels = new Set(['a', 'e', 'i', 'o', 'u']);
-    const allowedDoubleConsonants = new Set(['r', 's', 'l']);
-    
+    const vowels = useCallback(() => {
+        return new Set(['a', 'e', 'i', 'o', 'u'])
+    }, []);
+    const allowedDoubleConsonants = useCallback(() => {
+        return new Set(['r', 's', 'l']);
+    }, []);
+
     // Bad consonant combinations (sound unnatural)
-    const badConsonantCombinations = new Set([
-        'bp', 'bt', 'bk', 'bg', 'bf', 'bx', 'bz',
-        'pb', 'pt', 'pk', 'pf', 'px', 'pz',
-        'tk', 'tg', 'tx', 'tz', 'tf',
-        'kt', 'kg', 'kf', 'kx', 'kz',
-        'gf', 'gx', 'gz', 'gb', 'gp', 'gt', 'gk',
-        'fb', 'fp', 'ft', 'fk', 'fg', 'fx', 'fz',
-        'xb', 'xp', 'xt', 'xk', 'xg', 'xf', 'xz',
-        'zb', 'zp', 'zt', 'zk', 'zg', 'zf', 'zx',
-        'jb', 'jp', 'jt', 'jk', 'jg', 'jf', 'jx', 'jz',
-        'qb', 'qp', 'qt', 'qk', 'qg', 'qf', 'qx', 'qz'
-    ]);
+    const badConsonantCombinations = useCallback(() => {
+        return new Set([
+            'bp', 'bt', 'bk', 'bg', 'bf', 'bx', 'bz',
+            'pb', 'pt', 'pk', 'pf', 'px', 'pz',
+            'tk', 'tg', 'tx', 'tz', 'tf',
+            'kt', 'kg', 'kf', 'kx', 'kz',
+            'gf', 'gx', 'gz', 'gb', 'gp', 'gt', 'gk',
+            'fb', 'fp', 'ft', 'fk', 'fg', 'fx', 'fz',
+            'xb', 'xp', 'xt', 'xk', 'xg', 'xf', 'xz',
+            'zb', 'zp', 'zt', 'zk', 'zg', 'zf', 'zx',
+            'jb', 'jp', 'jt', 'jk', 'jg', 'jf', 'jx', 'jz',
+            'qb', 'qp', 'qt', 'qk', 'qg', 'qf', 'qx', 'qz'
+        ]);
+    }, []);
 
     // Catalan-specific consonant combinations that work at the beginning
-    const catalanBeginningCombs = new Set([
-        'br', 'cr', 'dr', 'fr', 'gr', 'pr', 'tr',
-        'bl', 'cl', 'fl', 'gl', 'pl',
-        'sc', 'sp', 'st', 'sq'
-    ]);
+    const catalanBeginningCombs = useCallback(() => {
+        return new Set([
+            'br', 'cr', 'dr', 'fr', 'gr', 'pr', 'tr',
+            'bl', 'cl', 'fl', 'gl', 'pl',
+            'sc', 'sp', 'st', 'sq'
+        ]);
+    }, []);
 
     // Catalan-specific consonant combinations that work at the end
-    const catalanEndCombs = new Set([
-        'nt', 'nd', 'ng', 'nk', 'mp', 'mb', 
-        'lt', 'rt', 'rn', 'rm', 'rp', 'rc', 'rd', 'rf', 'rg',
-        'st', 'ct', 'pt', 'xt', 'ny'
-    ]);
+    const catalanEndCombs = useCallback(() => {
+        return new Set([
+            'nt', 'nd', 'ng', 'nk', 'mp', 'mb', 
+            'lt', 'rt', 'rn', 'rm', 'rp', 'rc', 'rd', 'rf', 'rg',
+            'st', 'ct', 'pt', 'xt', 'ny'
+        ]);
+    }, []);
 
     // Bad sounding vowel combinations specific to Catalan
-    const badVowelCombinations = new Set([
-        'oa', 'ao', 'oe', 'eo', 'uo', 'ou', 
-        'ae', 'ea', 'oo', 'aa', 'ii', 'uu', 'ee',
-        'io', 'oi'
-    ]);
+    const badVowelCombinations = useCallback(() => {
+        return new Set([
+            'oa', 'ao', 'oe', 'eo', 'uo', 'ou', 
+            'ae', 'ea', 'oo', 'aa', 'ii', 'uu', 'ee',
+            'io', 'oi'
+        ]);
+    }, []);
 
     // Natural/acceptable vowel combinations in Catalan
-    const catalanDiphthongs = new Set([
-        'ai', 'au', 'ei', 'eu', 'iu', 'ui',
-        'ia', 'ie', 'ua', 'ue'
-    ]);
+    const catalanDiphthongs = useCallback(() => {
+        return new Set([
+            'ai', 'au', 'ei', 'eu', 'iu', 'ui',
+            'ia', 'ie', 'ua', 'ue'
+        ]);
+    }, []);
 
     // Helper function to check if a word has more than 2 consecutive letters
     const hasMoreThanTwoConsecutiveLetters = (word: string): boolean => {
@@ -97,13 +111,13 @@ export default function PrefixCombinationsModal({
     };
 
     // Function to calculate probability score for a word
-    const calculateProbabilityScore = (word: string): number => {
+    const calculateProbabilityScore = useCallback((word: string): number => {
         let score = 100;
 
         // Check for consecutive repeated letters (except r, s, l)
         for (let i = 0; i < word.length - 1; i++) {
             if (word[i] === word[i + 1]) {
-                if (!allowedDoubleConsonants.has(word[i])) {
+                if (!allowedDoubleConsonants().has(word[i])) {
                     score -= 30;
                 } else {
                     score += 5;
@@ -116,10 +130,10 @@ export default function PrefixCombinationsModal({
             const currentChar = word[i];
             const nextChar = word[i + 1];
             
-            if (vowels.has(currentChar) && vowels.has(nextChar)) {
+            if (vowels().has(currentChar) && vowels().has(nextChar)) {
                 const vowelPair = currentChar + nextChar;
                 
-                if (badVowelCombinations.has(vowelPair)) {
+                if (badVowelCombinations().has(vowelPair)) {
                     if (['oa', 'ao', 'oe', 'eo'].includes(vowelPair)) {
                         score -= 30;
                     } else if (['uo', 'ou', 'ae', 'ea'].includes(vowelPair)) {
@@ -131,7 +145,7 @@ export default function PrefixCombinationsModal({
                     } else {
                         score -= 10;
                     }
-                } else if (catalanDiphthongs.has(vowelPair)) {
+                } else if (catalanDiphthongs().has(vowelPair)) {
                     if (['ai', 'au', 'ei', 'eu', 'iu', 'ui'].includes(vowelPair)) {
                         score += 8;
                     } else if (['ia', 'ie', 'ua', 'ue'].includes(vowelPair)) {
@@ -148,19 +162,19 @@ export default function PrefixCombinationsModal({
         for (let i = 0; i < word.length; i++) {
             const char = word[i];
             
-            if (!vowels.has(char)) {
+            if (!vowels().has(char)) {
                 consecutiveConsonants++;
                 currentConsonantCluster += char;
                 
                 if (consecutiveConsonants >= 2) {
                     const lastTwo = currentConsonantCluster.slice(-2);
                     
-                    if (badConsonantCombinations.has(lastTwo)) {
+                    if (badConsonantCombinations().has(lastTwo)) {
                         score -= 50;
                     } else if (consecutiveConsonants === 2) {
                         const allCatalanCombos = new Set([
-                            ...catalanBeginningCombs, 
-                            ...catalanEndCombs
+                            ...catalanBeginningCombs(), 
+                            ...catalanEndCombs()
                         ]);
                         
                         if (allCatalanCombos.has(lastTwo)) {
@@ -169,11 +183,11 @@ export default function PrefixCombinationsModal({
                             const isAtEnd = i === word.length - 1;
                             
                             if (isAtBeginning) {
-                                if (catalanEndCombs.has(lastTwo) && !catalanBeginningCombs.has(lastTwo)) {
+                                if (catalanEndCombs().has(lastTwo) && !catalanBeginningCombs().has(lastTwo)) {
                                     positionPenalty = 25;
                                 }
                             } else if (isAtEnd) {
-                                if (catalanBeginningCombs.has(lastTwo) && !catalanEndCombs.has(lastTwo)) {
+                                if (catalanBeginningCombs().has(lastTwo) && !catalanEndCombs().has(lastTwo)) {
                                     positionPenalty = 25;
                                 }
                             }
@@ -200,13 +214,13 @@ export default function PrefixCombinationsModal({
         const firstChar = word[0];
         const lastChar = word[word.length - 1];
         
-        if (!vowels.has(firstChar)) {
+        if (!vowels().has(firstChar)) {
             if (['x', 'z', 'q', 'w'].includes(firstChar)) {
                 score -= 20;
             }
         }
         
-        if (!vowels.has(lastChar)) {
+        if (!vowels().has(lastChar)) {
             if (['h', 'j', 'q', 'w', 'x', 'z', 'b', 'k'].includes(lastChar)) {
                 score -= 15;
             }
@@ -237,14 +251,14 @@ export default function PrefixCombinationsModal({
         let alternatingBonus = 0;
         let hasGoodAlternation = true;
         for (let i = 0; i < word.length - 1; i++) {
-            const current = vowels.has(word[i]);
-            const next = vowels.has(word[i + 1]);
+            const current = vowels().has(word[i]);
+            const next = vowels().has(word[i + 1]);
             if (current !== next) {
                 alternatingBonus += 2;
             }
             if (current && next) {
                 const vowelPair = word[i] + word[i + 1];
-                if (badVowelCombinations.has(vowelPair)) {
+                if (badVowelCombinations().has(vowelPair)) {
                     hasGoodAlternation = false;
                 }
             }
@@ -256,18 +270,18 @@ export default function PrefixCombinationsModal({
             score += Math.floor(alternatingBonus / 2);
         }
 
-        if (!vowels.has(word[0])) {
+        if (!vowels().has(word[0])) {
             score += 5;
         }
 
-        if (vowels.has(word[word.length - 1])) {
+        if (vowels().has(word[word.length - 1])) {
             score += 8;
         }
 
         // Enhanced penalty for too many vowels in a row
         let consecutiveVowels = 0;
         for (let i = 0; i < word.length; i++) {
-            if (vowels.has(word[i])) {
+            if (vowels().has(word[i])) {
                 consecutiveVowels++;
                 if (consecutiveVowels >= 3) {
                     score -= 20 + (consecutiveVowels - 3) * 8;
@@ -317,7 +331,7 @@ export default function PrefixCombinationsModal({
         }
 
         return Math.max(score, 0);
-    };
+    }, [allowedDoubleConsonants, badConsonantCombinations, badVowelCombinations, catalanBeginningCombs, catalanDiphthongs, catalanEndCombs, vowels]);
 
     // Load combinations from localStorage on component mount
     useEffect(() => {
@@ -353,11 +367,11 @@ export default function PrefixCombinationsModal({
         }
     }, [triedCombinations, isLoaded]);
 
-    const getCombinationStatus = (combination: string): CombinationStatus => {
+    const getCombinationStatus = useCallback((combination: string): CombinationStatus => {
         if (foundWords.includes(combination)) return 'correct';
         if (triedCombinations.has(combination)) return 'tried';
         return 'untried';
-    };
+    }, [foundWords, triedCombinations]);
 
     const toggleCombinationStatus = (combination: string, newStatus: CombinationStatus) => {
         console.log('Setting combination status:', combination, newStatus);
@@ -475,7 +489,7 @@ export default function PrefixCombinationsModal({
             }
             return a.combination.localeCompare(b.combination);
         });
-    }, [prefix, length, subgroups, availableLetters, mainLetter, isOpen]);
+    }, [prefix, length, subgroups, availableLetters, mainLetter, isOpen, calculateProbabilityScore]);
 
     // Combine base combinations with status
     const combinations = useMemo(() => {
@@ -483,7 +497,7 @@ export default function PrefixCombinationsModal({
             ...combo,
             status: getCombinationStatus(combo.combination)
         }));
-    }, [baseCombinations, triedCombinations, foundWords]);
+    }, [baseCombinations, getCombinationStatus]);
 
     const triedCount = combinations.filter(c => c.status === 'tried').length;
     const correctCount = foundWords?.filter(word => word.startsWith(prefix)).length || 0;
@@ -516,7 +530,7 @@ export default function PrefixCombinationsModal({
                 <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
                     <div>
                         <h3 className="text-xl font-semibold text-gray-900">
-                            🎯 Combinacions amb prefix "{prefix.toUpperCase()}"
+                            🎯 Combinacions amb prefix &quot;{prefix.toUpperCase()}&quot;
                         </h3>
                         <div className="text-sm text-gray-600 mt-1">
                             Llargada: {length} lletres • Lletra principal: <span className="font-bold text-blue-600">{mainLetter.toUpperCase()}</span> • 
@@ -547,7 +561,7 @@ export default function PrefixCombinationsModal({
                                         {missingCount} {missingCount === 1 ? 'possible paraula' : 'possibles paraules'} a trobar
                                     </div>
                                     <div className="text-xs opacity-90">
-                                        amb prefix "{prefix.toUpperCase()}" ({length} lletres)
+                                        amb prefix &quot;{prefix.toUpperCase()}&quot; ({length} lletres)
                                     </div>
                                 </div>
                             </div>
@@ -616,7 +630,7 @@ export default function PrefixCombinationsModal({
                 {combinations.length > 0 && (
                     <div className="p-4 border-b border-gray-200">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">Progrés d'exploració</span>
+                            <span className="text-sm font-medium text-gray-700">Progrés d&apos;exploració</span>
                             <span className="text-sm text-gray-600">
                                 {Math.round(((triedCount + correctCount) / combinations.length) * 100)}% explorat
                             </span>
@@ -660,7 +674,7 @@ export default function PrefixCombinationsModal({
                                 i que no tinguin més de 2 lletres consecutives iguals.
                                 <br />
                                 <span className="text-blue-600">
-                                    Subgrups que contenen "{prefix.toUpperCase()}": {relevantSubgroups.length > 0 ? relevantSubgroups.map(s => s.toUpperCase()).join(', ') : 'Cap'}
+                                    Subgrups que contenen &quot;{prefix.toUpperCase()}&quot;: {relevantSubgroups.length > 0 ? relevantSubgroups.map(s => s.toUpperCase()).join(', ') : 'Cap'}
                                 </span>
                             </div>
                         </div>
@@ -673,7 +687,7 @@ export default function PrefixCombinationsModal({
                                     </h4>
                                     <div className="text-sm text-gray-600">
                                         <div>Clica esquerra: marcar com a <span className="text-orange-600 font-medium">provada</span></div>
-                                        <div>Clica dreta: marcar com a <span className="text-green-600 font-medium">trobada</span> (s'afegeix a la llista global)</div>
+                                        <div>Clica dreta: marcar com a <span className="text-green-600 font-medium">trobada</span> (s&apos;afegeix a la llista global)</div>
                                         <div className="text-blue-600 mt-1">Totes inclouen la lletra principal {mainLetter.toUpperCase()}</div>
                                     </div>
                                 </div>
@@ -856,7 +870,7 @@ export default function PrefixCombinationsModal({
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
                     <div className="flex justify-between items-center">
                         <div className="text-sm text-gray-500">
-                            Les paraules correctes s'afegeixen automàticament a la llista global
+                            Les paraules correctes s&apos;afegeixen automàticament a la llista global
                         </div>
                         <button
                             onClick={onClose}

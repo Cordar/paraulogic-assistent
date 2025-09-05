@@ -16,28 +16,20 @@ export default function PistesSummary({
     onAddFoundWord, 
     onRemoveFoundWord 
 }: PistesSummaryProps) {
-
-    if (!dades.pistes|| !dades.paraulesTrobades) {
-        return (
-            <div className="text-center text-gray-500 p-4">
-                No hi ha pistes configurades
-            </div>
-        );
-    }
-
-    const { pistes, paraulesTrobades } = dades;
-    const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];
-
     const { modalState, openModal, closeModal } = usePrefixModal();
+    const { pistes, paraulesTrobades } = dades;
 
     // Analyze found words
     const analisiParaules = useMemo(() => {
-
         const analysis = {
             perLletra: {} as { [key: string]: { count: number, lengths: { [length: number]: number } } },
             perSubgrup: {} as { [key: string]: number },
             perPrefix: {} as { [key: string]: number }
         };
+
+        if (!pistes || !paraulesTrobades) {
+            return analysis;
+        }
 
         // Analyze words by letter and length
         paraulesTrobades.forEach(paraula => {
@@ -78,6 +70,24 @@ export default function PistesSummary({
 
         return analysis;
     }, [paraulesTrobades, pistes]);
+
+    if (!pistes) {
+        return (
+            <div className="text-center text-gray-500 p-4">
+                No hi ha pistes configurades
+            </div>
+        );
+    }
+
+    if (!paraulesTrobades) {
+        return (
+            <div className="text-center text-gray-500 p-4">
+                No hi ha paraules trobades
+            </div>
+        );
+    }
+    
+    const totesLesLletres = [dades.lletraPrincipal, ...dades.lletresExtres];    
 
     const getProgressColor = (found: number, total: number) => {
         if (found === 0) return 'bg-red-100 text-red-800';
@@ -495,7 +505,7 @@ export default function PistesSummary({
                                         </div>
                                         {getProgressBar(foundCount, expectedCount)}
                                         <div className="text-xs text-gray-600 mt-1">
-                                            Paraules que comencen per "{prefix}"
+                                            Paraules que comencen per &quot;{prefix}&quot;
                                         </div>
                                     </div>
                                 );
